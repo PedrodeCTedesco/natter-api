@@ -5,9 +5,12 @@ import { SocialSpace } from './entities/social-space.entity';
 import { CreateSocialSpaceDto } from './dto/create-social-space.dto';
 import { Message } from '../messages/entities/message.entity';
 import { Response } from 'express';
+import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class SocialSpacesService {
+  private readonly logger = new Logger(SocialSpacesService.name);
+
   constructor(
     @InjectRepository(SocialSpace)
     private readonly socialSpaceRepository: Repository<SocialSpace>,
@@ -17,6 +20,7 @@ export class SocialSpacesService {
 
   /** Versão inicial feita por mim */
   async create(createSocialSpaceDto: CreateSocialSpaceDto, res: Response): Promise<{ uri: string }> {
+    this.logger.debug("Método seguro acionado!")
     // Cria o novo espaço social
     const newSpace = this.socialSpaceRepository.create({
       ...createSocialSpaceDto,
@@ -43,17 +47,16 @@ export class SocialSpacesService {
 
   /** Versão fornecida pelo autor, com vulnerabilidade SQL Injection */
   async createSQLInjectionVulnerability(createSocialSpaceDto: CreateSocialSpaceDto, res: Response): Promise<{ uri: string }> {
+    this.logger.debug('Método vulnerável acionado!')
     const { name, owner } = createSocialSpaceDto;
 
     // Aqui está a vulnerabilidade de SQL Injection, pois estamos concatenando as entradas diretamente na consulta
-    const spaceId = await this.socialSpaceRepository.query(
-      `SELECT NEXT VALUE FOR space_id_seq;`
+    await this.socialSpaceRepository.query(
+      `INSERT INTO social_space(name, owner) VALUES('${name}', '${owner}');`
     );
 
-    // Código vulnerável (SQL Injection)
-    await this.socialSpaceRepository.query(
-      `INSERT INTO spaces(space_id, name, owner) VALUES(${spaceId}, '${name}', '${owner}');`
-    );
+    const result = await this.socialSpaceRepository.query(`SELECT last_insert_rowid() as id;`);
+    const spaceId = result[0].id;
 
     const spaceUri = `http://localhost:3000/spaces/${spaceId}`;
 
@@ -86,5 +89,9 @@ export class SocialSpacesService {
     await this.messageRepository.save(newMessage);
   
     return newMessage;
+  }
+
+  async getAllSpaces(): Promise<SocialSpace[]> {
+    return this.socialSpaceRepository.find();
   }
 }

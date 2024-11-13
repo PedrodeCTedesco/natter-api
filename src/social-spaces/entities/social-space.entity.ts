@@ -1,6 +1,6 @@
 import { Entity, Column, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity()
+@Entity('spaces')
 export class SocialSpace {
   @PrimaryGeneratedColumn()
   id: number;
