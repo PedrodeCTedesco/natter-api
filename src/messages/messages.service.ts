@@ -7,26 +7,26 @@ import { CreateMessageDto } from './dto/create-message.dto';
 @Injectable()
 export class MessagesService {
   constructor(
-    @InjectRepository(Message)
-    private readonly messageRepository: Repository<Message>,
+    //@InjectRepository(Message)
+    //private readonly messageRepository: Repository<Message>,
   ) {}
 
-  async createMessage(spaceId: string, createMessageDto: CreateMessageDto): Promise<Message> {
+/*   async createMessage(spaceId: string, createMessageDto: CreateMessageDto): Promise<Message> {
     const newMessage = this.messageRepository.create({
       ...createMessageDto,
       spaceId,
     });
     return await this.messageRepository.save(newMessage);
-  }
+  } */
 
-  async findMessages(spaceId: string, since?: string): Promise<Message[]> {
+/*   async findMessages(spaceId: string, since?: string): Promise<Message[]> {
     const queryBuilder = this.messageRepository.createQueryBuilder('message');
     queryBuilder.where('message.spaceId = :spaceId', { spaceId });
     if (since) queryBuilder.andWhere('message.msg_time >= :since', { since: new Date(since) });
     return await queryBuilder.getMany();
-  }
+  } */
 
-  async findMessageById(spaceId: string, messageId: number): Promise<Message> {
+/*   async findMessageById(spaceId: string, messageId: number): Promise<Message> {
     const message = await this.messageRepository.findOne({
       where: {
         spaceId,
@@ -39,5 +39,5 @@ export class MessagesService {
     }
 
     return message;
-  }
+  } */
 }
