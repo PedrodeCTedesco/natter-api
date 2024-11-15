@@ -28,21 +28,22 @@ export class SocialSpacesController {
     return this.socialSpacesService.createSQLInjectionVulnerability(createSocialSpaceDto, res);
   }
 
-/*   @Post('/:spaceId/messages')
+  @Post('/:spaceId/messages')
   async addMessage(
     @Param('spaceId') spaceId: string,
     @Body() messageData: { author: string, message: string }, 
   ) {
 
     return this.socialSpacesService.addMessage(spaceId, messageData);
-  } */
+  }
 
-/*   @Get()
+  @Get()
   async spaces(): Promise<SocialSpace[]> {
     return this.socialSpacesService.getAllSpaces();
-  } */
-    @Get()
-    async spaces(): Promise<SocialSpace[]> {
-      return this.socialSpacesService.findAll();
-    }
+  }
+
+  @Get('/unsafe')
+  async spacesVulnerableDb(): Promise<SocialSpace[]> {
+    return this.socialSpacesService.getAllSocialSpaces();
+  }
 }

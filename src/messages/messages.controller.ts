@@ -7,24 +7,24 @@ import { Message } from './entities/message.entity';
 export class MessagesController {
   constructor(private readonly messagesService: MessagesService) {}
 
-/*   @Get()
+  @Get()
   async listMessages(@Param('spaceId') spaceId: string, @Query('since') since: string): Promise<Message[]> {
     return await this.messagesService.findMessages(spaceId, since);
-  } */
+  }
 
-/*   @Get(':messageId')
+  @Get(':messageId')
   async readMessage(
     @Param('spaceId') spaceId: string,
     @Param('messageId') messageId: number,
   ): Promise<Message> {
     return await this.messagesService.findMessageById(spaceId, messageId);
-  } */
+  }
 
-/*   @Post()
+  @Post()
   async sendMessage(
     @Param('spaceId') spaceId: string,
     @Body() createMessageDto: CreateMessageDto,
   ) {
     return await this.messagesService.createMessage(spaceId, createMessageDto);
-  } */
+  }
 }
