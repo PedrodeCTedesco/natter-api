@@ -10,7 +10,7 @@ export class SocialSpacesController {
   private readonly logger = new Logger(SocialSpacesController.name);
   constructor(private readonly socialSpacesService: SocialSpacesService) {}
 
-  @Post()
+  @Post('safe/simple')
   async createSpace(
     @Body() createSocialSpaceDto: CreateSocialSpaceDto,
     @Res() res: Response,
@@ -28,22 +28,17 @@ export class SocialSpacesController {
     return this.socialSpacesService.createSQLInjectionVulnerability(createSocialSpaceDto, res);
   }
 
-  @Post('/:spaceId/messages')
-  async addMessage(
-    @Param('spaceId') spaceId: string,
-    @Body() messageData: { author: string, message: string }, 
+  @Post('safe/complex')
+  async createSafeSpace(
+    @Body() createSocialSpaceDto: CreateSocialSpaceDto,
+    @Res() res: Response,
   ) {
-
-    return this.socialSpacesService.addMessage(spaceId, messageData);
+    this.logger.log(`Rota com método vulnerável acionado`);
+    return this.socialSpacesService.createSQLInjectionVulnerabilityWithSolution(createSocialSpaceDto, res);
   }
 
   @Get()
   async spaces(): Promise<SocialSpace[]> {
-    return this.socialSpacesService.getAllSpaces();
-  }
-
-  @Get('/unsafe')
-  async spacesVulnerableDb(): Promise<SocialSpace[]> {
-    return this.socialSpacesService.getAllSocialSpaces();
+    return this.socialSpacesService.findAll();
   }
 }
