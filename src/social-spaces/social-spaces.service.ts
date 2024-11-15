@@ -25,9 +25,33 @@ export class SocialSpacesService {
   // seguro e simples
   async create(createSocialSpaceDto: CreateSocialSpaceDto, res: Response): Promise<{ uri: string }> {
     this.logger.debug('Método seguro acionado');
+
+    // validação de input de forma geral
+    if (!createSocialSpaceDto.name || createSocialSpaceDto.name.length > 255) {
+      res.status(400).json({ error: 'O campo "name" deve ter no máximo 255 caracteres.' });
+      throw new Error('ValidationError: O campo "name" deve ter no máximo 255 caracteres.');
+    }
+
+    if (!createSocialSpaceDto.owner || createSocialSpaceDto.owner.length > 255) {
+      res.status(400).json({ error: 'O campo "owner" deve ter no máximo 255 caracteres.' });
+      throw new Error('ValidationError: O campo "owner" deve ter no máximo 255 caracteres.');
+    }
+
+    // validação de input específica
+    const regex = /^[a-zA-Z][a-zA-Z0-9 ]{1,29}$/;
+    if (!regex.test(createSocialSpaceDto.name)) {
+      res.status(400).json({ error: 'O campo "name" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.' });
+      throw new Error('ValidationError: O campo "name" é inválido.');
+    }
+  
+    if (!regex.test(createSocialSpaceDto.owner)) {
+      res.status(400).json({ error: 'O campo "owner" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.' });
+      throw new Error('ValidationError: O campo "owner" é inválido.');
+    }
     
     try {
       const spaceId = await new Promise<number>((resolve, reject) => {
+        // segurança contra SQL injection. Uso de declarações parametrizadas
         this.db.run(
           'INSERT INTO spaces (name, owner) VALUES (?, ?)',
           [createSocialSpaceDto.name, createSocialSpaceDto.owner],
@@ -40,7 +64,6 @@ export class SocialSpacesService {
   
       const spaceUri = `http://localhost:3000/spaces/${spaceId}`;
   
-      // Segunda query para atualizar a URI
       await new Promise<void>((resolve, reject) => {
         this.db.run(
           'UPDATE spaces SET uri = ? WHERE id = ?',
@@ -69,6 +92,10 @@ export class SocialSpacesService {
     this.logger.debug('Método vulnerável acionado!');
     
     const { name, owner } = createSocialSpaceDto;
+    if (!createSocialSpaceDto.name || createSocialSpaceDto.name.length > 10) {
+      res.status(400).json({ error: 'O campo "name" deve ter no máximo 10 caracteres.' });
+      throw new Error('ValidationError: O campo "name" deve ter no máximo 10 caracteres.');
+    }
 
     // Query vulnerável com SQL Injection
     const query = `INSERT INTO spaces(name, owner) VALUES('${name}', '${owner}');`;
@@ -115,14 +142,35 @@ export class SocialSpacesService {
     this.logger.debug('Método sanitarizado acionado!');
     
     const { name, owner } = createSocialSpaceDto;
+    // validação de input
+    if (!createSocialSpaceDto.name || createSocialSpaceDto.name.length > 255) {
+      res.status(400).json({ error: 'O campo "name" deve ter no máximo 255 caracteres.' });
+      throw new Error('ValidationError: O campo "name" deve ter no máximo 255 caracteres.');
+    }
+
+    if (!createSocialSpaceDto.owner || createSocialSpaceDto.owner.length > 255) {
+      res.status(400).json({ error: 'O campo "owner" deve ter no máximo 255 caracteres.' });
+      throw new Error('ValidationError: O campo "owner" deve ter no máximo 255 caracteres.');
+    }
+
+    // validação de input específica
+    const regex = /^[a-zA-Z][a-zA-Z0-9 ]{1,29}$/;
+    if (!regex.test(createSocialSpaceDto.name)) {
+      res.status(400).json({ error: 'O campo "name" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.' });
+      throw new Error('ValidationError: O campo "name" é inválido.');
+    }
+  
+    if (!regex.test(createSocialSpaceDto.owner)) {
+      res.status(400).json({ error: 'O campo "owner" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.' });
+      throw new Error('ValidationError: O campo "owner" é inválido.');
+    }
     
     // Query parametrizada para evitar SQL Injection
     const query = `INSERT INTO spaces(name, owner) VALUES(?, ?)`;
   
-    const stmt = this.db.prepare(query); // Prepare a declaração uma vez
+    const stmt = this.db.prepare(query);
   
     try {
-      // Inicia a transação
       this.db.run("BEGIN TRANSACTION;", (err) => {
         if (err) {
           this.logger.error('Erro ao iniciar a transação: ', err.message);
@@ -130,7 +178,6 @@ export class SocialSpacesService {
           return;
         }
   
-        // Executa o statement com os parâmetros fornecidos
         stmt.run([name, owner], (err) => {
           if (err) {
             this.logger.error('Erro ao executar a query preparada: ', err.message);
@@ -142,13 +189,11 @@ export class SocialSpacesService {
             });
             return;
           }
-  
-          // Finaliza o statement após a execução
+
           stmt.finalize();
   
           this.logger.debug(`Comando SQL executado com segurança: ${query}`);
   
-          // Tenta obter o ID do último registro inserido
           this.db.get("SELECT last_insert_rowid() as id;", [], (err, row: any) => {
             if (err || !row || !row.id) {
               this.logger.error('Erro ao acessar o último ID.');
@@ -163,16 +208,14 @@ export class SocialSpacesService {
   
             const spaceId = row.id;
             const spaceUri = `http://localhost:3000/spaces/${spaceId}`;
-  
-            // Commit da transação após inserir o dado com sucesso
+
             this.db.run("COMMIT;", (err) => {
               if (err) {
                 this.logger.error('Erro ao finalizar a transação: ', err.message);
                 res.status(500).json({ error: 'Erro ao finalizar a transação' });
                 return;
               }
-  
-              // Retorna a URI do novo recurso
+
               res.status(201).header('Location', spaceUri).json({
                 uri: spaceUri,
               });
@@ -214,7 +257,19 @@ export class SocialSpacesService {
         this.logger.error('Erro ao criar tabela:', err);
       } else {
         this.logger.debug('Tabela "spaces" criada com sucesso em memória.');
+        this.dbInfo();
       }
     });
   }
+
+  private dbInfo() {
+    this.db.all("PRAGMA table_info(spaces);", [], (err, rows) => {
+      if (err) {
+        console.error('Erro ao consultar o esquema da tabela:', err.message);
+      } else {
+        console.log('Esquema da tabela "spaces":', rows);
+      }
+    });
+  }
+
 }
