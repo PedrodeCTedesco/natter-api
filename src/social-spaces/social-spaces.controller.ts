@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Res } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Res, Query } from '@nestjs/common';
 import { SocialSpacesService } from './social-spaces.service';
 import { CreateSocialSpaceDto } from './dto/create-social-space.dto';
 import { Response } from 'express';
@@ -40,5 +40,41 @@ export class SocialSpacesController {
   @Get()
   async spaces(): Promise<SocialSpace[]> {
     return this.socialSpacesService.findAll();
+  }
+
+  @Post('unsafe/xss')
+  async xssEndpoint(@Body() body: any, @Res() res: Response) {
+    // Configurar headers para permitir o ataque (apenas para demonstração)
+    res.setHeader('Content-Type', 'text/html');
+    res.removeHeader('Content-Security-Policy');
+    res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval'");
+    
+    // Simular uma validação que falha
+    if (!body.owner || body.owner.length < 3) {
+      return res.send(`
+        <!DOCTYPE html>
+        <html>
+          <body>
+            <h1>Erro de Validação</h1>
+            <p>Input inválido para o nome: ${body.name}</p>
+            <script>
+              console.log("Erro processado para: " + "${body.name}");
+            </script>
+          </body>
+        </html>
+      `);
+    }
+
+    // Resposta normal
+    res.send(`
+      <!DOCTYPE html>
+      <html>
+        <body>
+          <h1>Dados recebidos:</h1>
+          <p>Nome: ${body.name}</p>
+          <p>Proprietário: ${body.owner}</p>
+        </body>
+      </html>
+    `);
   }
 }

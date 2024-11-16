@@ -92,11 +92,6 @@ export class SocialSpacesService {
     this.logger.debug('Método vulnerável acionado!');
     
     const { name, owner } = createSocialSpaceDto;
-    if (!createSocialSpaceDto.name || createSocialSpaceDto.name.length > 10) {
-      res.status(400).json({ error: 'O campo "name" deve ter no máximo 10 caracteres.' });
-      throw new Error('ValidationError: O campo "name" deve ter no máximo 10 caracteres.');
-    }
-
     // Query vulnerável com SQL Injection
     const query = `INSERT INTO spaces(name, owner) VALUES('${name}', '${owner}');`;
 
@@ -271,5 +266,4 @@ export class SocialSpacesService {
       }
     });
   }
-
 }

