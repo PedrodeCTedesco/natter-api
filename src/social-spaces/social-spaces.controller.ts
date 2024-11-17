@@ -4,11 +4,18 @@ import { CreateSocialSpaceDto } from './dto/create-social-space.dto';
 import { Response } from 'express';
 import { SocialSpace } from './entities/social-space.entity';
 import { Logger } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 
 @Controller('spaces')
+@Throttle({ short: { limit: 3, ttl: 1000 } })
 export class SocialSpacesController {
   private readonly logger = new Logger(SocialSpacesController.name);
   constructor(private readonly socialSpacesService: SocialSpacesService) {}
+
+  @Get()
+  async spaces(): Promise<SocialSpace[]> {
+    return this.socialSpacesService.findAll();
+  }
 
   @Post('safe/simple')
   async createSpace(
@@ -35,11 +42,6 @@ export class SocialSpacesController {
   ) {
     this.logger.log(`Rota com método vulnerável acionado`);
     return this.socialSpacesService.createSQLInjectionVulnerabilityWithSolution(createSocialSpaceDto, res);
-  }
-
-  @Get()
-  async spaces(): Promise<SocialSpace[]> {
-    return this.socialSpacesService.findAll();
   }
 
   @Post('unsafe/xss')
