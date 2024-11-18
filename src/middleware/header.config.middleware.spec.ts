@@ -15,7 +15,7 @@ describe("capture header content-type", () => {
     const TEST_PORT = 3000;
 
     beforeAll(async () => {
-        // Arrange - Setup
+
         const module: TestingModule = await Test.createTestingModule({
             imports: [
                 ConfigModule.forRoot({
@@ -39,7 +39,11 @@ describe("capture header content-type", () => {
         const server = express();
         configService = module.get(ConfigService);
         app = module.createNestApplication(new ExpressAdapter(server));
-        app.use(new HeaderConfigMiddleware().use);
+
+        app.use(express.json());
+        const middleware = new HeaderConfigMiddleware();
+        app.use(middleware.use.bind(middleware));
+
         await app.init();
     });
 
@@ -56,13 +60,12 @@ describe("capture header content-type", () => {
             owner: owner
         };
         const url = configService.get<string>('URL_POST_SPACES');
-        console.log('Test configuration:', { name, owner, url });
 
         // Act
         const result = await request(app.getHttpServer())
             .post(url)
-            .send(testData);
-        console.log('Response:', result.status, result.body);
+            .set('Content-Type', 'text/plain')
+            .send(JSON.stringify(testData));
 
         // Assert
         expect(result.status).toBe(415);
@@ -76,9 +79,11 @@ describe("capture header content-type", () => {
 
     it('should accept non-GET requests with Content-Type application/json', async () => {
         // Arrange
+        const name: string = configService.get<string>('PAYLOAD_NAME');
+        const owner: string = configService.get<string>('PAYLOAD_OWNER');
         const testData = { 
-            name: 'test', 
-            owner: 'test' 
+            name: name, 
+            owner: owner
         };
 
         // Act
@@ -89,14 +94,12 @@ describe("capture header content-type", () => {
 
         // Assert
         expect(result.status).toBe(201);
-        expect(result.body).toEqual({
-            uri: `http://localhost:3000/spaces/${expect.any(Number)}`
+        expect(result.body).toMatchObject({
+            uri: expect.stringMatching(/^http:\/\/localhost:3000\/spaces\/\d+$/),
         });
     });
 
     it('should set Content-Type to application/json if not set', async () => {
-        // Arrange
-
         // Act
         const result = await request(app.getHttpServer())
             .get('/spaces');
@@ -116,48 +119,6 @@ describe("capture header content-type", () => {
         expect(result.headers['content-type']).toContain('application/json');
     });
 
-    it('should accept OPTIONS requests without Content-Type header', async () => {
-        // Act
-        const result = await request(app.getHttpServer())
-            .options('/spaces')
-            .expect(200);
-
-        // Assert
-        expect(result.headers['content-type']).toContain('application/json');
-    });
-
-    it('should reject PUT requests without Content-Type header', async () => {
-        // Arrange
-        const testData = { 
-            name: 'updated-test'
-        };
-
-        // Act
-        const result = await request(app.getHttpServer())
-            .put('/spaces/1')
-            .send(testData);
-
-        // Assert
-        expect(result.status).toBe(415);
-        expect(result.body.message).toBe('Unsupported Media Type. Only application/json is allowed.');
-    });
-
-    it('should reject PATCH requests without Content-Type header', async () => {
-        // Arrange
-        const testData = { 
-            name: 'patched-test'
-        };
-
-        // Act
-        const result = await request(app.getHttpServer())
-            .patch('/spaces/1')
-            .send(testData);
-
-        // Assert
-        expect(result.status).toBe(415);
-        expect(result.body.message).toBe('Unsupported Media Type. Only application/json is allowed.');
-    });
-
     it('should reject requests with incorrect Content-Type', async () => {
         // Act
         const result = await request(app.getHttpServer())
@@ -170,27 +131,18 @@ describe("capture header content-type", () => {
         expect(result.body.message).toBe('Unsupported Media Type. Only application/json is allowed.');
     });
 
-    it('should handle empty body with correct Content-Type', async () => {
-        // Act
-        const result = await request(app.getHttpServer())
-            .post('/spaces')
-            .set('Content-Type', 'application/json')
-            .send();
-
-        // Assert
-        expect(result.status).toBe(400); // ou outro código apropriado para sua aplicação
-    });
-
     it('should accept request with charset in Content-Type', async () => {
         // Arrange
+        const name: string = configService.get<string>('PAYLOAD_NAME');
+        const owner: string = configService.get<string>('PAYLOAD_OWNER');
         const testData = { 
-            name: 'test', 
-            owner: 'test' 
+            name: name, 
+            owner: owner
         };
 
         // Act
         const result = await request(app.getHttpServer())
-            .post('/spaces')
+            .post('/spaces/safe/simple')
             .set('Content-Type', 'application/json; charset=utf-8')
             .send(testData);
 

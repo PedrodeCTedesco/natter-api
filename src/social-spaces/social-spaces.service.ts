@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { CreateSocialSpaceDto } from './dto/create-social-space.dto';
 import { Response } from 'express';
 import { Logger } from '@nestjs/common';
 import * as sqlite3 from 'sqlite3';
+import { UpdateSocialSpaceDto } from './dto/update-social-space.dto';
 
 
 @Injectable()
@@ -94,10 +95,11 @@ export class SocialSpacesService {
     const { name, owner } = createSocialSpaceDto;
     // Query vulnerável com SQL Injection
     const query = `INSERT INTO spaces(name, owner) VALUES('${name}', '${owner}');`;
+    this.logger.debug(`query maliciosa: ${query}`)
 
     try {
       // Executa a transação vulnerável
-      this.db.exec(`BEGIN TRANSACTION; ${query} COMMIT;`, (err) => {
+      this.db.exec(`${query} COMMIT;`, (err) => {
         if (err) {
           this.logger.error('Erro ao executar a query: ', err.message);
           res.status(500).json({ error: 'Erro ao executar a transação' });
@@ -235,6 +237,26 @@ export class SocialSpacesService {
           return;
         }
         resolve(rows);
+      });
+    });
+  }
+
+  async updateSpace(id: number, updateSocialSpace: UpdateSocialSpaceDto) {
+    return new Promise((resolve, reject) => {
+      // Query para atualizar o espaço
+      const { name, owner } = updateSocialSpace;
+      const sql = `UPDATE spaces SET name = ?, owner = ? WHERE id = ?`;
+
+      // Executando a query
+      this.db.run(sql, [name, owner, id], function (err) {
+        if (err) {
+          reject(new NotFoundException('Space not found'));
+        } else if (this.changes === 0) {
+          reject(new NotFoundException('Space not found'));
+        } else {
+          // Retorna a URI com o ID do espaço atualizado
+          resolve({ uri: `http://localhost:3000/spaces/${id}` });
+        }
       });
     });
   }

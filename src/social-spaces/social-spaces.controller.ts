@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Res, Query } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Res, Query, Put } from '@nestjs/common';
 import { SocialSpacesService } from './social-spaces.service';
 import { CreateSocialSpaceDto } from './dto/create-social-space.dto';
 import { Response } from 'express';
@@ -78,5 +78,16 @@ export class SocialSpacesController {
         </body>
       </html>
     `);
+  }
+
+  @Put(':id')
+  async updateSpace(
+    @Param('id') id: number,       
+    @Body() updateData: {   
+      name: string;
+      owner: string;
+    }
+  ) {
+    return await this.socialSpacesService.updateSpace(id, updateData);
   }
 }
