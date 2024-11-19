@@ -27,7 +27,6 @@ export class HeaderConfigMiddleware implements NestMiddleware {
       }
     }
 
-
     if (!res.getHeader('Content-Type')) res.setHeader('Content-Type', 'application/json');
 
     next();

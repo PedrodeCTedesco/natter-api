@@ -1,31 +1,26 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { CreateSocialSpaceDto } from './dto/create-social-space.dto';
 import { Response } from 'express';
 import { Logger } from '@nestjs/common';
 import * as sqlite3 from 'sqlite3';
 import { UpdateSocialSpaceDto } from './dto/update-social-space.dto';
+import { AuthService } from '../auth/auth.service';
 
 
 @Injectable()
 export class SocialSpacesService {
   private readonly logger = new Logger(SocialSpacesService.name);
-  private db: sqlite3.Database;
 
-  constructor() {
-    // Inicializa o banco SQLite em memória
-    this.db = new sqlite3.Database(':memory:', (err) => {
-      if (err) {
-        this.logger.error('Erro ao conectar ao SQLite:', err);
-      } else {
-        this.logger.debug('Conectado ao SQLite em memória');
-        this.initialize();
-      }
-    });
-  }
+  constructor(
+    @Inject('DATABASE') private readonly db: sqlite3.Database
+  ) {}
 
   // seguro e simples
   async create(createSocialSpaceDto: CreateSocialSpaceDto, res: Response): Promise<{ uri: string }> {
     this.logger.debug('Método seguro acionado');
+
+    const user = AuthService.getAuthenticatedUser(res.req);
+    if(!user) throw new UnauthorizedException('Usuário não autorizado');
 
     // validação de input de forma geral
     if (!createSocialSpaceDto.name || createSocialSpaceDto.name.length > 255) {
@@ -258,34 +253,6 @@ export class SocialSpacesService {
           resolve({ uri: `http://localhost:3000/spaces/${id}` });
         }
       });
-    });
-  }
-    
-  private initialize() {
-    this.db.run(`
-      CREATE TABLE IF NOT EXISTS spaces (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        name TEXT,
-        owner TEXT,
-        uri TEXT
-      )
-    `, (err) => {
-      if (err) {
-        this.logger.error('Erro ao criar tabela:', err);
-      } else {
-        this.logger.debug('Tabela "spaces" criada com sucesso em memória.');
-        this.dbInfo();
-      }
-    });
-  }
-
-  private dbInfo() {
-    this.db.all("PRAGMA table_info(spaces);", [], (err, rows) => {
-      if (err) {
-        console.error('Erro ao consultar o esquema da tabela:', err.message);
-      } else {
-        console.log('Esquema da tabela "spaces":', rows);
-      }
     });
   }
 }
