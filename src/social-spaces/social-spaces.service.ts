@@ -5,6 +5,7 @@ import { Logger } from '@nestjs/common';
 import * as sqlite3 from 'sqlite3';
 import { UpdateSocialSpaceDto } from './dto/update-social-space.dto';
 import { AuthService } from '../auth/auth.service';
+import { escapeSpecialCharacters, validateUserInput, validateUserInputFormat } from '../auth/input.validation/input.validation.helper';
 
 
 @Injectable()
@@ -22,35 +23,24 @@ export class SocialSpacesService {
     const user = AuthService.getAuthenticatedUser(res.req);
     if(!user) throw new UnauthorizedException('Usuário não autorizado');
 
-    // validação de input de forma geral
-    if (!createSocialSpaceDto.name || createSocialSpaceDto.name.length > 255) {
-      res.status(400).json({ error: 'O campo "name" deve ter no máximo 255 caracteres.' });
-      throw new Error('ValidationError: O campo "name" deve ter no máximo 255 caracteres.');
-    }
-
-    if (!createSocialSpaceDto.owner || createSocialSpaceDto.owner.length > 255) {
-      res.status(400).json({ error: 'O campo "owner" deve ter no máximo 255 caracteres.' });
-      throw new Error('ValidationError: O campo "owner" deve ter no máximo 255 caracteres.');
-    }
-
-    // validação de input específica
-    const regex = /^[a-zA-Z][a-zA-Z0-9 ]{1,29}$/;
-    if (!regex.test(createSocialSpaceDto.name)) {
-      res.status(400).json({ error: 'O campo "name" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.' });
-      throw new Error('ValidationError: O campo "name" é inválido.');
-    }
-  
-    if (!regex.test(createSocialSpaceDto.owner)) {
-      res.status(400).json({ error: 'O campo "owner" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.' });
-      throw new Error('ValidationError: O campo "owner" é inválido.');
+    try {
+      validateUserInput(createSocialSpaceDto.name, createSocialSpaceDto.owner, res);
+      validateUserInputFormat(createSocialSpaceDto.name, createSocialSpaceDto.owner, res)
+    } catch (error) {
+      this.logger.error('Erro de validação:', error.message);
+      throw error;
     }
     
     try {
+
+      const escapedName: string = escapeSpecialCharacters(createSocialSpaceDto.name);
+      const escapedOwner: string = escapeSpecialCharacters(createSocialSpaceDto.owner);
+
       const spaceId = await new Promise<number>((resolve, reject) => {
         // segurança contra SQL injection. Uso de declarações parametrizadas
         this.db.run(
           'INSERT INTO spaces (name, owner) VALUES (?, ?)',
-          [createSocialSpaceDto.name, createSocialSpaceDto.owner],
+          [escapedName, escapedOwner],
           function(err) {
             if (err) reject(err);
             else resolve(this.lastID);
@@ -132,30 +122,22 @@ export class SocialSpacesService {
   // seguro e complexo
   async createSQLInjectionVulnerabilityWithSolution(createSocialSpaceDto: any, res: Response): Promise<any> {
     this.logger.debug('Método sanitarizado acionado!');
+
+    const user = AuthService.getAuthenticatedUser(res.req);
+    if(!user) throw new UnauthorizedException('Usuário não autorizado');
     
     const { name, owner } = createSocialSpaceDto;
-    // validação de input
-    if (!createSocialSpaceDto.name || createSocialSpaceDto.name.length > 255) {
-      res.status(400).json({ error: 'O campo "name" deve ter no máximo 255 caracteres.' });
-      throw new Error('ValidationError: O campo "name" deve ter no máximo 255 caracteres.');
+
+    try {
+      validateUserInput(createSocialSpaceDto.name, createSocialSpaceDto.owner, res);
+      validateUserInputFormat(createSocialSpaceDto.name, createSocialSpaceDto.owner, res)
+    } catch (error) {
+      this.logger.error('Erro de validação:', error.message);
+      throw error;
     }
 
-    if (!createSocialSpaceDto.owner || createSocialSpaceDto.owner.length > 255) {
-      res.status(400).json({ error: 'O campo "owner" deve ter no máximo 255 caracteres.' });
-      throw new Error('ValidationError: O campo "owner" deve ter no máximo 255 caracteres.');
-    }
-
-    // validação de input específica
-    const regex = /^[a-zA-Z][a-zA-Z0-9 ]{1,29}$/;
-    if (!regex.test(createSocialSpaceDto.name)) {
-      res.status(400).json({ error: 'O campo "name" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.' });
-      throw new Error('ValidationError: O campo "name" é inválido.');
-    }
-  
-    if (!regex.test(createSocialSpaceDto.owner)) {
-      res.status(400).json({ error: 'O campo "owner" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.' });
-      throw new Error('ValidationError: O campo "owner" é inválido.');
-    }
+    const escapedName: string = escapeSpecialCharacters(createSocialSpaceDto.name);
+    const escapedOwner: string = escapeSpecialCharacters(createSocialSpaceDto.owner);
     
     // Query parametrizada para evitar SQL Injection
     const query = `INSERT INTO spaces(name, owner) VALUES(?, ?)`;
@@ -170,7 +152,7 @@ export class SocialSpacesService {
           return;
         }
   
-        stmt.run([name, owner], (err) => {
+        stmt.run([escapedName, escapedOwner], (err) => {
           if (err) {
             this.logger.error('Erro ao executar a query preparada: ', err.message);
             this.db.run("ROLLBACK;", (rollbackErr) => {

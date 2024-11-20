@@ -15,13 +15,11 @@ export class HeaderAuthMiddleware implements NestMiddleware {
                 statusCode: 401,
                 message: 'Unauthorized. Missing authorization header.',
                 timestamp: new Date().toISOString(),
-                path: req.path,
             });
         }
 
         const [authType, token] = authorizationHeader.split(' ');
 
-        // Verificação para Basic Auth
         if (authType.toLowerCase() === 'basic') {
             if (!token) {
                 return res.status(401).json({
@@ -39,14 +37,11 @@ export class HeaderAuthMiddleware implements NestMiddleware {
                     statusCode: 401,
                     message: 'Unauthorized. Invalid credentials format.',
                     timestamp: new Date().toISOString(),
-                    path: req.path,
                 });
             }
 
-            const regexUsername = /^[a-zA-Z0-9\s]*$/;
-            if (!regexUsername.test(username)) {
-                throw new BadRequestException('O valor fornecido contém caracteres especiais não permitidos.');
-            }
+            const regex = /^[a-zA-Z0-9\s]*$/;
+            if (!regex.test(username)) throw new BadRequestException('O valor fornecido contém caracteres especiais não permitidos.');
 
             const user = await this.userService.validateBasicAuth(username);
             if (!user) {
@@ -67,6 +62,13 @@ export class HeaderAuthMiddleware implements NestMiddleware {
             }
 
             req['user'] = user;
+        } else {
+            return res.status(401).json({
+                statusCode: 401,
+                message: 'Unauthorized. Missing authorization header.',
+                timestamp: new Date().toISOString(),
+                path: req.path,
+            });
         }
 
         next();
