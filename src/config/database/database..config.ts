@@ -49,6 +49,24 @@ export function initializeDatabase(db: sqlite3.Database) {
         dbInfo(db, 'messages');
       }
     });
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS audit_log (
+        audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
+        method VARCHAR(10) NOT NULL,
+        path VARCHAR(100) NOT NULL,
+        user_id VARCHAR(30) NULL,
+        status INTEGER NULL,
+        audit_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+      )
+    `, (err) => {
+      if (err) {
+        console.error('Erro ao criar tabela "audit_log":', err);
+      } else {
+        console.log('Tabela "audit_log" criada com sucesso em memória.');
+        dbInfo(db, 'audit_log');
+      }
+    });
   }
 
   function dbInfo(db: sqlite3.Database, tableName: string) {

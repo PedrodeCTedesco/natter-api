@@ -5,13 +5,16 @@ import { SocialSpacesModule } from './social-spaces/social-spaces.module';
 import { MessagesModule } from './messages/messages.module';
 import { AuthModule } from './auth/auth.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
-import { APP_GUARD } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ThrottleLoggerMiddleware } from './middleware/rate.limiting.middleware';
 import { HeaderConfigMiddleware } from './middleware/headers/header.config.middleware';
 import { additionalSecurityHeaders, helmetConfig } from './config/helmet/helmet';
 import { UsersModule } from './users/users.module';
 import { HeaderAuthMiddleware } from './middleware/headers/header.auth.middleware';
 import { DatabaseModule } from './config/database/database.module';
+import { AuditLoggingModule } from './audit_logging/audit_logging.module';
+import { AuditInterceptor } from './interceptor/audit.logging.interceptor';
+import { AuditMiddleware } from './middleware/audit_logging/audit.logging.middleware';
 
 @Module({
   imports: [
@@ -34,13 +37,18 @@ import { DatabaseModule } from './config/database/database.module';
     SocialSpacesModule,
     MessagesModule,
     AuthModule,
-    UsersModule
+    UsersModule,
+    AuditLoggingModule
   ],
   controllers: [AppController],
   providers: [
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard
+    },
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditInterceptor
     },
     AppService
   ],
@@ -71,5 +79,9 @@ export class AppModule {
     consumer
       .apply(HeaderConfigMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
+
+    consumer
+        .apply(AuditMiddleware)
+        .forRoutes({ path: "*", method: RequestMethod.ALL})
   }
 }
