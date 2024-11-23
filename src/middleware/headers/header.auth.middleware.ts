@@ -61,7 +61,11 @@ export class HeaderAuthMiddleware implements NestMiddleware {
                 });
             }
 
-            req['user'] = user;
+            // Garantir que o ID do usuário esteja disponível
+            req['user'] = {
+                ...user,
+                id: user.user_id // certifique-se de que o ID está sendo passado corretamente
+            };
         } else {
             return res.status(401).json({
                 statusCode: 401,

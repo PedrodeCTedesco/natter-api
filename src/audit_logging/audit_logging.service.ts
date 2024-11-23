@@ -9,7 +9,7 @@ export class AuditService {
 
   async generateAuditId(): Promise<number> {
     return new Promise((resolve, reject) => {
-      this.db.get('SELECT MAX(audit_id) + 1 as next_id FROM audit_log', [], (err, row: any) => {
+      this.db.get('SELECT MAX(audit_id) + 1 as next_id FROM audit_events', [], (err, row: any) => {
         if (err) reject(err);
         resolve(row?.next_id || 1);
       });
@@ -23,7 +23,13 @@ export class AuditService {
   }): Promise<void> {
     return new Promise((resolve, reject) => {
       this.db.run(
-        'INSERT INTO audit_log (audit_id, method, path) VALUES (?, ?, ?)',
+        `INSERT INTO audit_events (
+          audit_id, 
+          event_type,
+          method, 
+          path,
+          created_at
+        ) VALUES (?, 'REQUEST_START', ?, ?, datetime('now'))`,
         [data.auditId, data.method, data.path],
         (err) => {
           if (err) reject(err);
@@ -39,8 +45,13 @@ export class AuditService {
   }): Promise<void> {
     return new Promise((resolve, reject) => {
       this.db.run(
-        'UPDATE audit_log SET user_id = ? WHERE audit_id = ?',
-        [data.userId, data.auditId],
+        `INSERT INTO audit_events (
+          audit_id,
+          event_type,
+          user_id,
+          created_at
+        ) VALUES (?, 'AUTH_INFO', ?, datetime('now'))`,
+        [data.auditId, data.userId],
         (err) => {
           if (err) reject(err);
           resolve();
@@ -58,7 +69,15 @@ export class AuditService {
   }): Promise<void> {
     return new Promise((resolve, reject) => {
       this.db.run(
-        'INSERT INTO audit_log (audit_id, method, path, status, user_id) VALUES (?, ?, ?, ?, ?)',
+        `INSERT INTO audit_events (
+          audit_id,
+          event_type,
+          method,
+          path,
+          status,
+          user_id,
+          created_at
+        ) VALUES (?, 'REQUEST_END', ?, ?, ?, ?, datetime('now'))`,
         [data.auditId, data.method, data.path, data.statusCode, data.userId || null],
         (err) => {
           if (err) reject(err);

@@ -58,6 +58,10 @@ export class AppModule {
     consumer
       .apply(ThrottleLoggerMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
+
+    consumer
+    .apply(AuditMiddleware)
+    .forRoutes({ path: "*", method: RequestMethod.ALL});
     
     consumer
       .apply(helmetConfig)
@@ -79,9 +83,5 @@ export class AppModule {
     consumer
       .apply(HeaderConfigMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
-
-    consumer
-        .apply(AuditMiddleware)
-        .forRoutes({ path: "*", method: RequestMethod.ALL})
   }
 }

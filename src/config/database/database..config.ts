@@ -67,6 +67,62 @@ export function initializeDatabase(db: sqlite3.Database) {
         dbInfo(db, 'audit_log');
       }
     });
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS audit_ids (
+        id INTEGER PRIMARY KEY AUTOINCREMENT
+      )
+    `, (err) => {
+        if (err) {
+            console.error('Erro ao criar tabela "audit_ids":', err);
+        } else {
+            console.log('Tabela "audit_ids" criada com sucesso.');
+            dbInfo(db, 'audit_ids');
+        }
+    });
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS audit_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        audit_id INTEGER NOT NULL,
+        event_type TEXT NOT NULL CHECK(event_type IN ('REQUEST_START', 'AUTH_INFO', 'REQUEST_END')),
+        method TEXT,
+        path TEXT,
+        status INTEGER,
+        user_id TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP NOT NULL,
+        FOREIGN KEY (audit_id) REFERENCES audit_ids(id)
+      )
+    `, (err) => {
+        if (err) {
+            console.error('Erro ao criar tabela "audit_events":', err);
+        } else {
+            console.log('Tabela "audit_events" criada com sucesso.');
+            dbInfo(db, 'audit_events');
+        }
+    });
+
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_audit_events_audit_id 
+      ON audit_events(audit_id)
+    `, (err) => {
+        if (err) {
+            console.error('Erro ao criar índice "idx_audit_events_audit_id":', err);
+        } else {
+            console.log('Índice "idx_audit_events_audit_id" criado com sucesso.');
+        }
+    });
+
+    db.run(`
+      CREATE INDEX IF NOT EXISTS idx_audit_events_created_at 
+      ON audit_events(created_at)
+    `, (err) => {
+        if (err) {
+            console.error('Erro ao criar índice "idx_audit_events_created_at":', err);
+        } else {
+            console.log('Índice "idx_audit_events_created_at" criado com sucesso.');
+        }
+    });
   }
 
   function dbInfo(db: sqlite3.Database, tableName: string) {

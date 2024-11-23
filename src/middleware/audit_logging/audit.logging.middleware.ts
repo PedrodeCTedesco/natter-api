@@ -21,8 +21,8 @@ export class AuditMiddleware implements NestMiddleware {
 
       // Intercepta a resposta para casos de erro de autenticação
       res.on('finish', async () => {
-        // Só registra aqui se for erro de autenticação (401/403)
-        if (res.statusCode === 401 || res.statusCode === 403) {
+        // Só registro de todos os tipos de erros
+        if (res.statusCode) {
           await this.auditService.logRequestEnd({
             auditId,
             method: req.method,
