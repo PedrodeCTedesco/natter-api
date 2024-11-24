@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, BadRequestException, Get } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 
@@ -16,5 +16,14 @@ export class UsersController {
     if (!regexPassword.test(createUserDto.password)) throw new BadRequestException('O valor fornecido deve conter ao menos 1 letra maiúscula, 8 caracateres e caracteres especiais.');
 
     return this.usersService.create(createUserDto);
+  }
+
+  @Get()
+  async getAllUsers() {
+    try {
+      return await this.usersService.getUsers();
+    } catch (err) {
+      throw new BadRequestException('Erro ao recuperar usuários');
+    }
   }
 }

@@ -6,7 +6,7 @@ import { MessagesModule } from './messages/messages.module';
 import { AuthModule } from './auth/auth.module';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
-import { ThrottleLoggerMiddleware } from './middleware/rate.limiting.middleware';
+import { ThrottleLoggerMiddleware } from './middleware/rate_limiting/rate.limiting.middleware';
 import { HeaderConfigMiddleware } from './middleware/headers/header.config.middleware';
 import { additionalSecurityHeaders, helmetConfig } from './config/helmet/helmet';
 import { UsersModule } from './users/users.module';

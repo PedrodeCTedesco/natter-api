@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Res, Query, Put } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Res, Query, Put, ParseIntPipe } from '@nestjs/common';
 import { SocialSpacesService } from './social-spaces.service';
 import { CreateSocialSpaceDto } from './dto/create-social-space.dto';
 import { Response } from 'express';
@@ -78,6 +78,22 @@ export class SocialSpacesController {
         </body>
       </html>
     `);
+  }
+
+  @Post(':spaceId/members')
+  async addMember(
+    @Param('spaceId', ParseIntPipe) spaceId: number,
+    @Body('username') username: string,
+    @Body('permissions') permissions: string,
+    @Res() res: Response,
+  ) {
+    try {
+      const result = await this.socialSpacesService.addMember(spaceId, username, permissions);
+      res.status(201).json(result);
+    } catch (error) {
+      this.logger.error(`Erro ao adicionar membro: ${error.message}`);
+      res.status(400).json({ error: error.message });
+    }
   }
 
   @Put(':id')

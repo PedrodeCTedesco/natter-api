@@ -17,31 +17,38 @@ export class SocialSpacesService {
   ) {}
 
   // seguro e simples
-  async create(createSocialSpaceDto: CreateSocialSpaceDto, res: Response): Promise<{ uri: string }> {
+  async create(createSocialSpaceDto: CreateSocialSpaceDto, res: Response): Promise<{ 
+    uri: string, 
+    name: string,
+    owner: string,
+    userSpaceInfo: {
+      user: string,
+      permissions: string
+    }
+  }> {
     this.logger.debug('Método seguro acionado');
-
+  
     const user = AuthService.getAuthenticatedUser(res.req);
-    if(!user) throw new UnauthorizedException('Usuário não autorizado');
-
+    if (!user) throw new UnauthorizedException('Usuário não autorizado');
+  
     try {
       validateUserInput(createSocialSpaceDto.name, createSocialSpaceDto.owner, res);
-      validateUserInputFormat(createSocialSpaceDto.name, createSocialSpaceDto.owner, res)
+      validateUserInputFormat(createSocialSpaceDto.name, createSocialSpaceDto.owner, res);
     } catch (error) {
       this.logger.error('Erro de validação:', error.message);
       throw error;
     }
-    
+  
     try {
-
       const escapedName: string = escapeSpecialCharacters(createSocialSpaceDto.name);
       const escapedOwner: string = escapeSpecialCharacters(createSocialSpaceDto.owner);
-
+  
+      // Inserir o espaço na tabela "spaces"
       const spaceId = await new Promise<number>((resolve, reject) => {
-        // segurança contra SQL injection. Uso de declarações parametrizadas
         this.db.run(
           'INSERT INTO spaces (name, owner) VALUES (?, ?)',
           [escapedName, escapedOwner],
-          function(err) {
+          function (err) {
             if (err) reject(err);
             else resolve(this.lastID);
           }
@@ -50,6 +57,7 @@ export class SocialSpacesService {
   
       const spaceUri = `http://localhost:3000/spaces/${spaceId}`;
   
+      // Atualizar a URI do espaço
       await new Promise<void>((resolve, reject) => {
         this.db.run(
           'UPDATE spaces SET uri = ? WHERE id = ?',
@@ -61,11 +69,39 @@ export class SocialSpacesService {
         );
       });
   
-      res.status(201)
-          .header('Location', spaceUri)
-          .json({ uri: spaceUri });
+      // Adicionar permissões "rwd" para o criador do espaço
+      await new Promise<void>((resolve, reject) => {
+        this.db.run(
+          'INSERT INTO permissions (space_id, user_id, perms) VALUES (?, ?, ?)',
+          [spaceId, user.id, 'rwd'], // 'rwd' representa todas as permissões
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
   
-      return { uri: spaceUri };
+      res.status(201)
+        .header('Location', spaceUri)
+        .json({ 
+          uri: spaceUri,
+          name: escapedName,
+          owner: escapedOwner,
+          userSpaceInfo: {
+            user: user.user_id,
+            permissions: "rwd"
+          }
+        });
+  
+      return { 
+        uri: spaceUri,
+        name: escapedName,
+        owner: escapedOwner,
+        userSpaceInfo: {
+          user: user.user_id,
+          permissions: "rwd"
+        }
+      };
   
     } catch (error) {
       this.logger.error('Erro ao criar space:', error);
@@ -118,91 +154,127 @@ export class SocialSpacesService {
       return { error: 'Erro ao executar a query' };
     }
   }
-
+  
   // seguro e complexo
-  async createSQLInjectionVulnerabilityWithSolution(createSocialSpaceDto: any, res: Response): Promise<any> {
-    this.logger.debug('Método sanitarizado acionado!');
-
+  async createSQLInjectionVulnerabilityWithSolution(createSocialSpaceDto: CreateSocialSpaceDto, res: Response): Promise<{
+    uri: string;
+    name: string;
+    owner: string;
+    userSpaceInfo: {
+      user: string,
+      permissions: string
+    }
+  }> {
+    this.logger.debug('Método seguro acionado');
+  
     const user = AuthService.getAuthenticatedUser(res.req);
-    if(!user) throw new UnauthorizedException('Usuário não autorizado');
-    
-    const { name, owner } = createSocialSpaceDto;
-
+    if (!user) throw new UnauthorizedException('Usuário não autorizado');
+  
     try {
       validateUserInput(createSocialSpaceDto.name, createSocialSpaceDto.owner, res);
-      validateUserInputFormat(createSocialSpaceDto.name, createSocialSpaceDto.owner, res)
+      validateUserInputFormat(createSocialSpaceDto.name, createSocialSpaceDto.owner, res);
     } catch (error) {
       this.logger.error('Erro de validação:', error.message);
       throw error;
     }
-
+  
     const escapedName: string = escapeSpecialCharacters(createSocialSpaceDto.name);
     const escapedOwner: string = escapeSpecialCharacters(createSocialSpaceDto.owner);
-    
-    // Query parametrizada para evitar SQL Injection
-    const query = `INSERT INTO spaces(name, owner) VALUES(?, ?)`;
-  
-    const stmt = this.db.prepare(query);
   
     try {
-      this.db.run("BEGIN TRANSACTION;", (err) => {
-        if (err) {
-          this.logger.error('Erro ao iniciar a transação: ', err.message);
-          res.status(500).json({ error: 'Erro ao iniciar a transação' });
-          return;
-        }
-  
-        stmt.run([escapedName, escapedOwner], (err) => {
+      await new Promise<void>((resolve, reject) => {
+        this.db.run("BEGIN TRANSACTION;", (err) => {
           if (err) {
-            this.logger.error('Erro ao executar a query preparada: ', err.message);
-            this.db.run("ROLLBACK;", (rollbackErr) => {
-              if (rollbackErr) {
-                this.logger.error('Erro ao reverter a transação: ', rollbackErr.message);
-              }
-              res.status(500).json({ error: 'Erro ao executar a query preparada' });
-            });
-            return;
+            this.logger.error('Erro ao iniciar a transação: ', err.message);
+            reject(new Error('Erro ao iniciar a transação'));
           }
-
-          stmt.finalize();
-  
-          this.logger.debug(`Comando SQL executado com segurança: ${query}`);
-  
-          this.db.get("SELECT last_insert_rowid() as id;", [], (err, row: any) => {
-            if (err || !row || !row.id) {
-              this.logger.error('Erro ao acessar o último ID.');
-              this.db.run("ROLLBACK;", (rollbackErr) => {
-                if (rollbackErr) {
-                  this.logger.error('Erro ao reverter a transação: ', rollbackErr.message);
-                }
-                res.status(500).json({ error: 'Erro ao acessar o ID' });
-              });
-              return;
-            }
-  
-            const spaceId = row.id;
-            const spaceUri = `http://localhost:3000/spaces/${spaceId}`;
-
-            this.db.run("COMMIT;", (err) => {
-              if (err) {
-                this.logger.error('Erro ao finalizar a transação: ', err.message);
-                res.status(500).json({ error: 'Erro ao finalizar a transação' });
-                return;
-              }
-
-              res.status(201).header('Location', spaceUri).json({
-                uri: spaceUri,
-              });
-  
-              return { uri: spaceUri };
-            });
-          });
+          resolve();
         });
       });
+  
+      const spaceId = await new Promise<number>((resolve, reject) => {
+        this.db.run(
+          'INSERT INTO spaces (name, owner) VALUES (?, ?)',
+          [escapedName, escapedOwner],
+          function (err) {
+            if (err) {
+              reject(err);
+            } else {
+              resolve(this.lastID);
+            }
+          }
+        );
+      });
+  
+      const spaceUri = `http://localhost:3000/spaces/${spaceId}`;
+  
+      await new Promise<void>((resolve, reject) => {
+        this.db.run(
+          'UPDATE spaces SET uri = ? WHERE id = ?',
+          [spaceUri, spaceId],
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
+  
+      await new Promise<void>((resolve, reject) => {
+        this.db.run(
+          'INSERT INTO permissions (space_id, user_id, perms) VALUES (?, ?, ?)',
+          [spaceId, user.id, 'rwd'],
+          (err) => {
+            if (err) reject(err);
+            else resolve();
+          }
+        );
+      });
+  
+      await new Promise<void>((resolve, reject) => {
+        this.db.run("COMMIT;", (err) => {
+          if (err) {
+            this.logger.error('Erro ao finalizar a transação: ', err.message);
+            reject(new Error('Erro ao finalizar a transação'));
+          }
+          resolve();
+        });
+      });
+  
+      res.status(201)
+        .header('Location', spaceUri)
+        .json({
+          uri: spaceUri,
+          name: escapedName,
+          owner: escapedOwner,
+          userSpaceInfo: {
+            user: user.user_id,
+            permissions: "rwd"
+          }
+        });
+  
+      return {
+        uri: spaceUri,
+        name: escapedName,
+        owner: escapedOwner,
+        userSpaceInfo: {
+          user: user.user_id,
+          permissions: "rwd"
+        }
+      };
     } catch (error) {
-      this.logger.error(`Erro ao executar a query: ${error.message}`);
-      res.status(500).json({ error: 'Erro ao executar a query' });
-      return { error: 'Erro ao executar a query' };
+      this.logger.error('Erro ao criar espaço:', error.message);
+  
+      await new Promise<void>((resolve) => {
+        this.db.run("ROLLBACK;", (rollbackErr) => {
+          if (rollbackErr) {
+            this.logger.error('Erro ao reverter a transação: ', rollbackErr.message);
+          }
+          resolve();
+        });
+      });
+  
+      res.status(500).json({ error: 'Erro ao criar espaço' });
+      throw error;
     }
   }
   
@@ -237,4 +309,28 @@ export class SocialSpacesService {
       });
     });
   }
+
+  async addMember(spaceId: number, username: string, permissions: string): Promise<{ username: string; permissions: string }> {
+    this.logger.debug(`Adicionando membro ao espaço ${spaceId}: usuário ${username} com permissões ${permissions}`);
+    
+    // Verifica se as permissões são válidas
+    if (!permissions.match(/^r?w?d?$/)) throw new Error('Permissões inválidas. Use combinações de "r", "w", "d".');
+
+    // Adiciona o membro no banco de dados
+    return new Promise((resolve, reject) => {
+      this.db.run(
+        `INSERT INTO permissions (space_id, user_id, perms) VALUES (?, ?, ?)`,
+        [spaceId, username, permissions],
+        (err) => {
+          if (err) {
+            this.logger.error(`Erro ao adicionar membro: ${err.message}`);
+            reject(new Error('Erro ao adicionar membro ao espaço'));
+          } else {
+            resolve({ username, permissions });
+          }
+        },
+      );
+    });
+  }
+  
 }

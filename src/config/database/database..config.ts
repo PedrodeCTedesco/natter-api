@@ -32,6 +32,24 @@ export function initializeDatabase(db: sqlite3.Database) {
     });
 
     db.run(`
+      CREATE TABLE IF NOT EXISTS permissions (
+        space_id INTEGER NOT NULL,
+        user_id VARCHAR(30) NOT NULL,
+        perms VARCHAR(3) NOT NULL,
+        PRIMARY KEY (space_id, user_id),
+        FOREIGN KEY (space_id) REFERENCES spaces(id),
+        FOREIGN KEY (user_id) REFERENCES users(user_id)
+      )
+    `, (err) => {
+      if (err) {
+        console.error('Erro ao criar tabela "permissions":', err);
+      } else {
+        console.log('Tabela "permissions" criada com sucesso em memória.');
+        dbInfo(db, 'permissions');
+      }
+    });
+
+    db.run(`
       CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         author VARCHAR(30) NOT NULL,

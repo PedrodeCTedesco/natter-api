@@ -43,6 +43,47 @@ export class UsersService {
     }
   }
 
+  async getUsers(): Promise<any[]> {
+    return new Promise((resolve, reject) => {
+      // Consulta para obter os usuários com as permissões associadas
+      const query = `
+        SELECT u.user_id, p.space_id, p.perms
+        FROM users u
+        LEFT JOIN permissions p ON u.user_id = p.user_id
+      `;
+      
+      this.db.all(query, (err, rows: any) => {
+        if (err) {
+          reject(err);
+          return;
+        }
+
+        // Organiza a resposta, agrupando permissões por usuário
+        const usersWithPermissions = rows.reduce((acc, row) => {
+          const user = acc.find(u => u.user_id === row.user_id);
+          
+          if (!user) {
+            acc.push({
+              user_id: row.user_id,
+              permissions: [
+                { space_id: row.space_id, perms: row.perms }
+              ]
+            });
+          } else {
+            user.permissions.push({
+              space_id: row.space_id,
+              perms: row.perms
+            });
+          }
+
+          return acc;
+        }, []);
+
+        resolve(usersWithPermissions);
+      });
+    });
+  }
+
   async validateBasicAuth(username: string): Promise<User | null> {
     return new Promise((resolve, reject) => {
       this.db.get<User>(

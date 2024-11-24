@@ -1,16 +1,19 @@
-import { Controller, Post, Body, Param, Get, Query, Res } from '@nestjs/common';
+import { Controller, Post, Body, Param, Get, Query, Res, UseGuards } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
-import { Message } from './entities/message.entity';
 import { Response } from 'express';
 import { Logger } from '@nestjs/common';
+import { PermissionGuard } from '../auth/guards/permissions.guard';
+import { RequirePermission } from 'src/auth/decorators/permissions.decorator';
 
-@Controller('spaces/:spaceId/messages')
+@Controller('spaces/messages')
 export class MessagesController {
   private readonly logger = new Logger(MessagesController.name);
 
   constructor(private readonly messagesService: MessagesService) {}
 
+  @RequirePermission('GET', 'R')
+  @UseGuards(PermissionGuard) 
   @Get()
   async listMessages(
     @Param('spaceId') spaceId: number, 
@@ -29,15 +32,25 @@ export class MessagesController {
     }
   }
 
-  @Get(':messageId')
+  @RequirePermission('GET', 'R')
+  @UseGuards(PermissionGuard) 
+  @Get(':spaceId/:messageId')
   async readMessage(
     @Param('spaceId') spaceId: number,
     @Param('messageId') messageId: number,
     @Res() res: Response
-  ): Promise<Message> {
-    return await this.messagesService.findMessageById(spaceId, messageId, res);
+  ): Promise<void> { // Altere para 'void'
+    try {
+      const message = await this.messagesService.findMessageById(spaceId, messageId, res);
+      res.status(200).json(message); // Envia a mensagem como JSON
+    } catch (error) {
+      console.error('Erro no controller:', error.message);
+      res.status(400).json({ error: error.message }); // Retorna erro
+    }
   }
 
+  @RequirePermission('POST', 'RW')
+  @UseGuards(PermissionGuard)   
   @Post()
   async sendMessage(
     @Body() createMessageDto: CreateMessageDto,
