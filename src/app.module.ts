@@ -58,10 +58,6 @@ export class AppModule {
     consumer
       .apply(ThrottleLoggerMiddleware)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
-
-    consumer
-    .apply(AuditMiddleware)
-    .forRoutes({ path: "*", method: RequestMethod.ALL});
     
     consumer
       .apply(helmetConfig)
@@ -70,18 +66,23 @@ export class AppModule {
     consumer  
       .apply(additionalSecurityHeaders)
       .forRoutes({ path: '*', method: RequestMethod.ALL });
+
+    consumer
+    .apply(HeaderConfigMiddleware)
+    .forRoutes({ path: '*', method: RequestMethod.ALL });
     
+    // HeaderAuthMiddleware agora vem ANTES do AuditMiddleware
     consumer
       .apply(HeaderAuthMiddleware)
-      .exclude
-        ({ 
-          path: 'users', 
-          method: RequestMethod.POST 
-        })
+      .exclude({ 
+        path: 'users', 
+        method: RequestMethod.POST 
+      })
       .forRoutes({ path: '*', method: RequestMethod.ALL });
     
+    // AuditMiddleware vem depois da autenticação
     consumer
-      .apply(HeaderConfigMiddleware)
-      .forRoutes({ path: '*', method: RequestMethod.ALL });
+      .apply(AuditMiddleware)
+      .forRoutes({ path: "*", method: RequestMethod.ALL});
   }
 }

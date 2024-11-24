@@ -16,20 +16,8 @@ export class AuditMiddleware implements NestMiddleware {
       await this.auditService.logRequestStart({
         auditId,
         method: req.method,
-        path: req.path
-      });
-
-      // Intercepta a resposta para casos de erro de autenticação
-      res.on('finish', async () => {
-        // Só registro de todos os tipos de erros
-        if (res.statusCode) {
-          await this.auditService.logRequestEnd({
-            auditId,
-            method: req.method,
-            path: req.path,
-            statusCode: res.statusCode
-          });
-        }
+        path: req.path,
+        user: req['user']
       });
 
       next();

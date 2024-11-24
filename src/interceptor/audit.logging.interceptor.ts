@@ -12,12 +12,13 @@ export class AuditInterceptor implements NestInterceptor {
     const request = context.switchToHttp().getRequest();
     const response = context.switchToHttp().getResponse();
     const auditId = request['audit_id'];
+    const user = request['user']; // Recupera o usuário da mesma forma que no middleware
 
     // Atualiza com informações do usuário se autenticado
-    if (request.user) {
+    if (user) {
       await this.auditService.updateRequestWithAuthInfo({
         auditId,
-        userId: request.user.id
+        userId: user.id
       });
     }
 
@@ -30,7 +31,7 @@ export class AuditInterceptor implements NestInterceptor {
             method: request.method,
             path: request.path,
             statusCode: response.statusCode,
-            userId: request.user?.id
+            userId: user?.id // Use a variável user que recuperamos
           });
         }
       }),
@@ -41,7 +42,7 @@ export class AuditInterceptor implements NestInterceptor {
             method: request.method,
             path: request.path,
             statusCode: error.status || 500,
-            userId: request.user?.id
+            userId: user?.id // Use a variável user que recuperamos
           });
         }
         return throwError(() => error);

@@ -20,6 +20,7 @@ export class AuditService {
     auditId: number;
     method: string;
     path: string;
+    user?: string;
   }): Promise<void> {
     return new Promise((resolve, reject) => {
       this.db.run(
@@ -28,8 +29,9 @@ export class AuditService {
           event_type,
           method, 
           path,
+          user_id,
           created_at
-        ) VALUES (?, 'REQUEST_START', ?, ?, datetime('now'))`,
+        ) VALUES (?, 'REQUEST_START', ?, ?, ?, datetime('now'))`,
         [data.auditId, data.method, data.path],
         (err) => {
           if (err) reject(err);
