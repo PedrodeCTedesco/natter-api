@@ -5,7 +5,7 @@ import { Logger } from '@nestjs/common';
 import * as sqlite3 from 'sqlite3';
 import { UpdateSocialSpaceDto } from './dto/update-social-space.dto';
 import { AuthService } from '../auth/auth.service';
-import { escapeSpecialCharacters, validateUserInput, validateUserInputFormat } from '../auth/input.validation/input.validation.helper';
+import { escapeSpecialCharacters, validateSpaceId, validateUserInput, validateUserInputFormat, validateUsername } from '../auth/input.validation/input.validation.helper';
 
 
 @Injectable()
@@ -310,27 +310,54 @@ export class SocialSpacesService {
     });
   }
 
-  async addMember(spaceId: number, username: string, permissions: string): Promise<{ username: string; permissions: string }> {
+  async addMember(spaceId: number, username: string, permissions: string, res: Response): Promise<{ username: string; permissions: string }> {
     this.logger.debug(`Adicionando membro ao espaço ${spaceId}: usuário ${username} com permissões ${permissions}`);
-    
-    // Verifica se as permissões são válidas
-    if (!permissions.match(/^r?w?d?$/)) throw new Error('Permissões inválidas. Use combinações de "r", "w", "d".');
-
-    // Adiciona o membro no banco de dados
-    return new Promise((resolve, reject) => {
-      this.db.run(
-        `INSERT INTO permissions (space_id, user_id, perms) VALUES (?, ?, ?)`,
-        [spaceId, username, permissions],
-        (err) => {
-          if (err) {
-            this.logger.error(`Erro ao adicionar membro: ${err.message}`);
-            reject(new Error('Erro ao adicionar membro ao espaço'));
-          } else {
-            resolve({ username, permissions });
-          }
-        },
-      );
-    });
-  }
   
+    try {
+      // Validações iniciais
+      validateSpaceId(spaceId, res);
+      validateUsername(username, res);
+  
+      // Verifica se as permissões são válidas
+      if (!permissions.match(/^r?w?d?$/)) {
+        throw new Error('Permissões inválidas. Use combinações de "r", "w", "d".');
+      }
+  
+      // Verifica se o espaço existe
+      return new Promise((resolve, reject) => {
+        this.db.get(
+          `SELECT id FROM spaces WHERE id = ?`,
+          [spaceId],
+          (err, space) => {
+            if (err) {
+              this.logger.error(`Erro ao verificar existência do espaço: ${err.message}`);
+              return reject(new Error('Erro ao verificar existência do espaço'));
+            }
+  
+            if (!space) {
+              return reject(new Error('Espaço não encontrado'));
+            }
+  
+            // Se o espaço existe, adiciona o membro
+            this.db.run(
+              `INSERT INTO permissions (space_id, user_id, perms) VALUES (?, ?, ?)`,
+              [spaceId, username, permissions],
+              (insertErr) => {
+                if (insertErr) {
+                  this.logger.error(`Erro ao adicionar membro: ${insertErr.message}`);
+                  reject(new Error('Erro ao adicionar membro ao espaço'));
+                } else {
+                  resolve({ username, permissions });
+                }
+              }
+            );
+          }
+        );
+      });
+  
+    } catch(err) {
+      this.logger.error(`Erro ao adicionar membro: ${err.message}`);
+      throw err;
+    }
+  }
 }

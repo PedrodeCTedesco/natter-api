@@ -88,7 +88,7 @@ export class SocialSpacesController {
     @Res() res: Response,
   ) {
     try {
-      const result = await this.socialSpacesService.addMember(spaceId, username, permissions);
+      const result = await this.socialSpacesService.addMember(spaceId, username, permissions, res);
       res.status(201).json(result);
     } catch (error) {
       this.logger.error(`Erro ao adicionar membro: ${error.message}`);

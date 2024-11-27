@@ -82,4 +82,19 @@ export function escapeSpecialCharacters(input: string): string {
       .replace(/'/g, '&#039;') // ' -> &#039;
       .replace(/\//g, '&#047;'); // / -> &#047;
 }
-  
+
+export function validateUsername(username: string, res: Response): boolean {
+    const regex = /^[a-zA-Z][a-zA-Z0-9 ]{1,29}$/;
+
+    if(!username) {
+        res.status(400).json({ error: 'O campo "username" não pode estar vazio.' });
+        throw new Error('ValidationError: O campo "username" não pode estar vazio.');
+    }
+
+    if (!regex.test(username)) {
+        res.status(400).json({ error: 'O campo "username" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.' });
+        throw new Error('ValidationError: O campo "username" é inválido.');
+    }
+
+    return true;
+}
