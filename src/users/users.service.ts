@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from "bcrypt";
 import { ConfigService } from '@nestjs/config';
@@ -7,6 +7,7 @@ import { User } from './interfaces/user.interface';
 
 @Injectable()
 export class UsersService {
+  private readonly logger = new Logger(UsersService.name);
 
   constructor(
     private readonly configService: ConfigService,
@@ -14,7 +15,7 @@ export class UsersService {
   ) {}
   
   async create(createUserDto: CreateUserDto) {
-    const { username, password } = createUserDto;
+    const { username, password, permissions = '' } = createUserDto;
   
     try {
       const salt = await bcrypt.genSalt(
@@ -22,24 +23,54 @@ export class UsersService {
       );
       const hash = await bcrypt.hash(password, salt);
   
-      await new Promise((resolve, reject) => {
-        this.db.run(
-          `INSERT INTO users (user_id, pw_hash) VALUES (?, ?)`, 
-          [username, hash], 
-          (err) => {
-            if (err) reject(err);
-            else resolve(true);
-          }
-        );
-      });
+      // Insere na tabela `users`
+      try {
+        await new Promise((resolve, reject) => {
+          this.db.run(
+            `INSERT INTO users (user_id, pw_hash) VALUES (?, ?)`, 
+            [username, hash], 
+            (err) => {
+              if (err) reject(err);
+              else resolve(true);
+            }
+          );
+        });
+      } catch (error) {
+        if (error.message) { 
+          this.logger.error(`Duplicate username detected: ${username}`);
+          throw new BadRequestException({ status: 400, message: 'User with this username already exists'});
+        }
+        throw error;
+      }
+  
+      if (permissions === 'a') {
+        await new Promise((resolve, reject) => {
+          this.db.run(
+            `INSERT INTO permissions (space_id, user_id, perms) 
+             SELECT id, ?, ? 
+             FROM spaces`, 
+            [username, 'a'],
+            (err) => {
+              if (err) reject(err);
+              else resolve(true);
+            }
+          );
+        });
+      }
   
       return { 
         username: username,
         created: true 
       };
     } catch (error) {
-      console.error('Error creating user:', error);
-      throw new Error('User creation failed');
+      if (error.message) { 
+        this.logger.error(`Duplicate username detected: ${username}`);
+        throw new BadRequestException({
+          status: 400,
+          message: 'User with this username already exists',
+        });
+      }
+      throw error;
     }
   }
 

@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Response } from 'express';
 import * as sqlite3 from 'sqlite3';
 import { Message } from './entities/message.entity';
@@ -12,7 +12,6 @@ import {
   validateMessageId, 
   escapeSpecialCharacters 
 } from '../auth/input.validation/input.validation.helper';
-import { Logger } from '@nestjs/common';
 
 @Injectable()
 export class MessagesService {

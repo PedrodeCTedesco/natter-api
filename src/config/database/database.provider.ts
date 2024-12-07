@@ -1,11 +1,13 @@
 import * as sqlite3 from 'sqlite3';
-import { initializeDatabase } from './database..config';
+import { initializeDatabase, populateInitialData } from './database.config';
+
 
 export const DatabaseProvider = {
   provide: 'DATABASE',
-  useFactory: () => {
+  useFactory: async () => {
     const db = new sqlite3.Database(':memory:');
-    initializeDatabase(db);
+    await initializeDatabase(db);
+    await populateInitialData(db);
     return db;
   }
 };

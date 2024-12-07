@@ -1,7 +1,12 @@
 import * as sqlite3 from 'sqlite3';
+import * as bcrypt from 'bcrypt';
+import { promisify } from 'util';
 
-export function initializeDatabase(db: sqlite3.Database) {
-    db.run(`
+export async function initializeDatabase(db: sqlite3.Database) {
+  const runAsync = promisify(db.run.bind(db));
+  
+  try {
+    await runAsync(`
       CREATE TABLE IF NOT EXISTS spaces (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT,
@@ -17,10 +22,11 @@ export function initializeDatabase(db: sqlite3.Database) {
       }
     });
 
-    db.run(`
+    await runAsync(`
         CREATE TABLE IF NOT EXISTS users (
           user_id VARCHAR(30) PRIMARY KEY,
-          pw_hash VARCHAR(255) NOT NULL
+          pw_hash VARCHAR(255) NOT NULL,
+          permissions VARCHAR(4) DEFAULT 'u'
         )
       `, (err) => {
         if (err) {
@@ -31,7 +37,7 @@ export function initializeDatabase(db: sqlite3.Database) {
         }
     });
 
-    db.run(`
+    await runAsync(`
       CREATE TABLE IF NOT EXISTS permissions (
         space_id INTEGER NOT NULL,
         user_id VARCHAR(30) NOT NULL,
@@ -49,7 +55,7 @@ export function initializeDatabase(db: sqlite3.Database) {
       }
     });
 
-    db.run(`
+    await runAsync(`
       CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         author VARCHAR(30) NOT NULL,
@@ -68,7 +74,7 @@ export function initializeDatabase(db: sqlite3.Database) {
       }
     });
 
-    db.run(`
+    await runAsync(`
       CREATE TABLE IF NOT EXISTS audit_log (
         audit_id INTEGER PRIMARY KEY AUTOINCREMENT,
         method VARCHAR(10) NOT NULL,
@@ -86,7 +92,7 @@ export function initializeDatabase(db: sqlite3.Database) {
       }
     });
 
-    db.run(`
+    await runAsync(`
       CREATE TABLE IF NOT EXISTS audit_ids (
         id INTEGER PRIMARY KEY AUTOINCREMENT
       )
@@ -99,7 +105,7 @@ export function initializeDatabase(db: sqlite3.Database) {
         }
     });
 
-    db.run(`
+    await runAsync(`
       CREATE TABLE IF NOT EXISTS audit_events (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         audit_id INTEGER NOT NULL,
@@ -120,7 +126,7 @@ export function initializeDatabase(db: sqlite3.Database) {
         }
     });
 
-    db.run(`
+    await runAsync(`
       CREATE INDEX IF NOT EXISTS idx_audit_events_audit_id 
       ON audit_events(audit_id)
     `, (err) => {
@@ -131,7 +137,7 @@ export function initializeDatabase(db: sqlite3.Database) {
         }
     });
 
-    db.run(`
+    await runAsync(`
       CREATE INDEX IF NOT EXISTS idx_audit_events_created_at 
       ON audit_events(created_at)
     `, (err) => {
@@ -141,14 +147,58 @@ export function initializeDatabase(db: sqlite3.Database) {
             console.log('Índice "idx_audit_events_created_at" criado com sucesso.');
         }
     });
+  } catch(err) {
+    console.error('Error initializing database:', err);
+    throw err;
   }
+}
 
-  function dbInfo(db: sqlite3.Database, tableName: string) {
-    db.all(`PRAGMA table_info(${tableName});`, [], (err, rows) => {
-      if (err) {
-        console.error(`Erro ao consultar o esquema da tabela "${tableName}":`, err.message);
-      } else {
-        console.log(`Esquema da tabela "${tableName}":`, rows);
-      }
-    });
+function dbInfo(db: sqlite3.Database, tableName: string) {
+  db.all(`PRAGMA table_info(${tableName});`, [], (err, rows) => {
+    if (err) {
+      console.error(`Erro ao consultar o esquema da tabela "${tableName}":`, err.message);
+    } else {
+      console.log(`Esquema da tabela "${tableName}":`, rows);
+    }
+  });
+}
+
+export async function populateInitialData(db: sqlite3.Database): Promise<void> {
+  const runAsync = promisify(db.run.bind(db));
+  const getAsync = promisify(db.get.bind(db));
+  
+  try {
+    // Create admin user with hashed password
+    const adminUsername = 'admin';
+    const adminPassword = 'admin123';
+    const salt = await bcrypt.genSalt(10);
+    const hash = await bcrypt.hash(adminPassword, salt);
+
+    // Insert admin user
+    await runAsync(
+      'INSERT OR IGNORE INTO users (user_id, pw_hash) VALUES (?, ?)',
+      [adminUsername, hash]
+    );
+
+    // Create default space
+    await runAsync(
+      'INSERT OR IGNORE INTO spaces (name, owner, uri) VALUES (?, ?, ?)',
+      ['Default Space', adminUsername, '/default']
+    );
+
+    // Get the space ID
+    const spaceRow = await getAsync('SELECT last_insert_rowid() as spaceId');
+    const spaceId = spaceRow.spaceId;
+
+    // Add admin permissions
+    await runAsync(
+      'INSERT OR IGNORE INTO permissions (space_id, user_id, perms) VALUES (?, ?, ?)',
+      [spaceId, adminUsername, 'a']
+    );
+
+    console.log('Initial data populated successfully');
+  } catch (error) {
+    console.error('Error populating initial data:', error);
+    throw error;
   }
+}

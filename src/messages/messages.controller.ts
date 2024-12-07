@@ -1,8 +1,7 @@
-import { Controller, Post, Body, Param, Get, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Post, Body, Param, Get, Query, Res, UseGuards, Logger } from '@nestjs/common';
 import { MessagesService } from './messages.service';
 import { CreateMessageDto } from './dto/create-message.dto';
 import { Response } from 'express';
-import { Logger } from '@nestjs/common';
 import { PermissionGuard } from '../auth/guards/permissions.guard';
 import { RequirePermission } from 'src/auth/decorators/permissions.decorator';
 

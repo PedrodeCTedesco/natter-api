@@ -12,7 +12,6 @@ export class AuditMiddleware implements NestMiddleware {
       const auditId = await this.auditService.generateAuditId();
       req['audit_id'] = auditId;
 
-      // Log inicial básico - sem informações de autenticação
       await this.auditService.logRequestStart({
         auditId,
         method: req.method,
