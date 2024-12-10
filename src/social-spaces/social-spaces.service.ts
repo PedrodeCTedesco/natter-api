@@ -32,8 +32,8 @@ export class SocialSpacesService {
     if (!user) throw new UnauthorizedException('Usuário não autorizado');
   
     try {
-      validateUserInput(createSocialSpaceDto.name, createSocialSpaceDto.owner, res);
-      validateUserInputFormat(createSocialSpaceDto.name, createSocialSpaceDto.owner, res);
+      validateUserInput(createSocialSpaceDto.name, createSocialSpaceDto.owner);
+      validateUserInputFormat(createSocialSpaceDto.name, createSocialSpaceDto.owner);
     } catch (error) {
       this.logger.error('Erro de validação:', error.message);
       throw error;
@@ -171,8 +171,8 @@ export class SocialSpacesService {
     if (!user) throw new UnauthorizedException('Usuário não autorizado');
   
     try {
-      validateUserInput(createSocialSpaceDto.name, createSocialSpaceDto.owner, res);
-      validateUserInputFormat(createSocialSpaceDto.name, createSocialSpaceDto.owner, res);
+      validateUserInput(createSocialSpaceDto.name, createSocialSpaceDto.owner);
+      validateUserInputFormat(createSocialSpaceDto.name, createSocialSpaceDto.owner);
     } catch (error) {
       this.logger.error('Erro de validação:', error.message);
       throw error;
@@ -315,8 +315,8 @@ export class SocialSpacesService {
   
     try {
       // Validações iniciais
-      validateSpaceId(spaceId, res);
-      validateUsername(username, res);
+      validateSpaceId(spaceId);
+      validateUsername(username);
   
       // Verifica se as permissões são válidas
       if (!permissions.match(/^r?w?d?$/)) {

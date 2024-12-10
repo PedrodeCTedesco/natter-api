@@ -5,10 +5,8 @@ import * as sqlite3 from 'sqlite3';
 import { TestDatabaseModule } from "./database.test.module";
 
 export async function setupTest(moduleToTest?: string) {
-  // Cria uma instância de banco de dados SQLite em memória
+  
   const db = new sqlite3.Database(':memory:');
-
-  // Dynamic import do módulo baseado no nome
   let targetModule: Type<any> | DynamicModule | undefined;
 
   if (moduleToTest) {

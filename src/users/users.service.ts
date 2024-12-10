@@ -3,7 +3,8 @@ import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from "bcrypt";
 import { ConfigService } from '@nestjs/config';
 import * as sqlite3 from 'sqlite3';
-import { User } from './interfaces/user.interface';
+import { SavedUser, User } from './interfaces/user.interface';
+import { validatePassword, validatePermissions, validateUsername } from '../auth/input.validation/input.validation.helper';
 
 @Injectable()
 export class UsersService {
@@ -14,16 +15,19 @@ export class UsersService {
     @Inject('DATABASE') private readonly db: sqlite3.Database,
   ) {}
   
-  async create(createUserDto: CreateUserDto) {
+  async create(createUserDto: CreateUserDto): Promise<SavedUser> {
     const { username, password, permissions = '' } = createUserDto;
+
+    validateUsername(createUserDto.username);
+    validatePassword(createUserDto.password);
+    if(permissions) validatePermissions(createUserDto.permissions);
   
     try {
-      const salt = await bcrypt.genSalt(
+      const salt: string = await bcrypt.genSalt(
         parseInt(this.configService.get('SALT') || "10")
       );
-      const hash = await bcrypt.hash(password, salt);
+      const hash: string = await bcrypt.hash(password, salt);
   
-      // Insere na tabela `users`
       try {
         await new Promise((resolve, reject) => {
           this.db.run(
@@ -118,7 +122,7 @@ export class UsersService {
   async validateBasicAuth(username: string): Promise<User | null> {
     return new Promise((resolve, reject) => {
       this.db.get<User>(
-        `SELECT user_id, pw_hash FROM users WHERE user_id = ?`, 
+        `SELECT user_id, pw_hash, permissions FROM users WHERE user_id = ?`, 
         [username],
         (err, row) => {
           if (err) {
@@ -132,6 +136,7 @@ export class UsersService {
 
           resolve({
             user_id: row.user_id,
+            permissions: row.permissions,
             pw_hash: row.pw_hash
           });
         }
