@@ -3,8 +3,9 @@ import { CreateUserDto } from './dto/create-user.dto';
 import * as bcrypt from "bcrypt";
 import { ConfigService } from '@nestjs/config';
 import * as sqlite3 from 'sqlite3';
-import { SavedUser, User } from './interfaces/user.interface';
+import { SavedUser, User, UserDB } from './interfaces/user.interface';
 import { validatePassword, validatePermissions, validateUsername } from '../auth/input.validation/input.validation.helper';
+import { USER_METHODS } from './constants/identifiers.methods';
 
 @Injectable()
 export class UsersService {
@@ -15,7 +16,7 @@ export class UsersService {
     @Inject('DATABASE') private readonly db: sqlite3.Database,
   ) {}
   
-  async create(createUserDto: CreateUserDto): Promise<SavedUser> {
+  async [USER_METHODS.CREATE](createUserDto: CreateUserDto): Promise<SavedUser> {
     const { username, password, permissions = '' } = createUserDto;
 
     validateUsername(createUserDto.username);
@@ -78,10 +79,9 @@ export class UsersService {
     }
   }
 
-  async getUsers(): Promise<any[]> {
+  async [USER_METHODS.FIND_ALL](): Promise<User[]> {
     return new Promise((resolve, reject) => {
-      // Consulta para obter os usuários com as permissões associadas
-      const query = `
+      const query: string = `
         SELECT u.user_id, p.space_id, p.perms
         FROM users u
         LEFT JOIN permissions p ON u.user_id = p.user_id
@@ -93,7 +93,6 @@ export class UsersService {
           return;
         }
 
-        // Organiza a resposta, agrupando permissões por usuário
         const usersWithPermissions = rows.reduce((acc, row) => {
           const user = acc.find(u => u.user_id === row.user_id);
           
@@ -119,20 +118,19 @@ export class UsersService {
     });
   }
 
-  async validateBasicAuth(username: string): Promise<User | null> {
+  async [USER_METHODS.VALIDATION](username: string): Promise<UserDB | null> {
     return new Promise((resolve, reject) => {
-      this.db.get<User>(
+      this.db.get<UserDB>(
         `SELECT user_id, pw_hash, permissions FROM users WHERE user_id = ?`, 
         [username],
         (err, row) => {
           if (err) {
-            console.error('Database query error:', err);
-            return reject(null);
+            return reject(
+              new Error(`Database query error: ${err.message}`,)
+            );
           }
           
-          if (!row) {
-            return resolve(null);
-          }
+          if (!row) return resolve(null);
 
           resolve({
             user_id: row.user_id,

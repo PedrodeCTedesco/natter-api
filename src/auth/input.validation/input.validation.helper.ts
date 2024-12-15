@@ -8,7 +8,7 @@ export function validateUserInput(name: string, owner: string): boolean {
 }
 
 export function validateUserInputFormat(name: string, owner: string): boolean {
-    const regex = /^[a-zA-Z][a-zA-Z0-9 ]{1,29}$/;
+    const regex: RegExp = /^[a-zA-Z][a-zA-Z0-9 ]{1,29}$/;
     if (!regex.test(name)) throw new BadRequestException({ status: 400, message: 'O campo "name" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.'});
     if (!regex.test(owner)) throw new BadRequestException({ status: 400, message: 'O campo "owner" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.' });
     return true;
@@ -40,8 +40,7 @@ export function validateUserMessage(message: string, res?: Response): boolean {
 }
 
 export function validateUserMessageFormat(message: string, res?: Response): boolean {
-    // Permitir letras, números, espaços e pontuação segura, sem caracteres HTML
-    const regex = /^[a-zA-Z0-9 .,?!áéíóúàèìòùãõçÁÉÍÓÚÀÈÌÒÙÃÕÇ-]+$/;
+    const regex: RegExp = /^[a-zA-Z0-9 .,?!áéíóúàèìòùãõçÁÉÍÓÚÀÈÌÒÙÃÕÇ-]+$/;
     if (!regex.test(message)) {
       res?.status(400).json({ error: 'O campo "message" contém caracteres inválidos.' });
       throw new Error('ValidationError: O campo "message" é inválido.');
@@ -51,8 +50,7 @@ export function validateUserMessageFormat(message: string, res?: Response): bool
 }
 
 export function validateDate(date: string): boolean {
-    const regex = /^([0-2][0-9]|(3)[0-1])\/(0[1-9]|1[0-2])\/\d{4}$/;
-  
+    const regex: RegExp = /^(0[1-9]|[12]\d|3[01])\/(0[1-9]|1[0-2])\/\d{4}$/;
     if (!regex.test(date)) throw new BadRequestException({ status: 400, message: 'ValidationError: O formato da data deve ser dd/mm/aaaa.'});
     return true;
 }
@@ -68,29 +66,39 @@ export function escapeSpecialCharacters(input: string): string {
 }
 
 export function validateUsername(username: string): boolean {
-    const regex = /^[a-zA-Z][a-zA-Z0-9 ]{1,29}$/;
+    const regex: RegExp = /^[a-zA-Z][a-zA-Z0-9 ]{1,29}$/;
     if(!username) throw new BadRequestException({ status: 400, message: 'o campo "username" não pode estar vazio.' });
-    if (!regex.test(username)) throw new BadRequestException({ status: 400, message: 'O campo "username" é inválido. Ele deve começar com uma letra e conter apenas letras e números, com no máximo 30 caracteres.'});
+    if (!regex.test(username)) throw new BadRequestException({ 
+        status: 400, 
+        message: 'O campo "username" é inválido. Ele deve começar com uma letra e conter apenas letras e números, ter no máximo 30 caracteres e não possuir caracteres especiais.'});
     return true;
 }
 
 export function validatePassword(password: string): boolean {
-    const regex: RegExp = /^(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>])[a-zA-Z0-9!@#$%^&*(),.?":{}|<>]{8,255}$/;
-    
-    if (!password || password.length < 8) {
-        throw new BadRequestException({ 
-            status: 400, 
-            message: 'o campo "password" não pode estar vazio, ou ter menos do que 8 caracteres.' 
+    const regex: RegExp = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>])[A-Za-z\d!@#$%^&*(),.?":{}|<>]{9,255}$/;
+
+    if (!password) {
+        throw new BadRequestException({
+            status: 400,
+            message: 'O campo "password" não pode estar vazio.'
         });
     }
-    
+
+    if (password.length < 8 || password.length > 255) {
+        throw new BadRequestException({
+            status: 400,
+            message: 'O campo "password" deve ter entre 9 e 255 caracteres.'
+        });
+    }
+
     if (!regex.test(password)) {
+        console.log('Validation failed: Missing required characters.');
         throw new BadRequestException({ 
             status: 400, 
-            message: 'A senha deve conter pelo menos um número e um caractere especial.' 
+            message: 'A senha deve conter pelo menos uma letra, um número e um caractere especial.' 
         });
     }
-    
+
     return true;
 }
 
