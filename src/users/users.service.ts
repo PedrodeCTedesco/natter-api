@@ -49,10 +49,34 @@ export class UsersService {
       }
   
       if (permissions === 'a') {
+        if (!createUserDto.spaceId) {
+          throw new BadRequestException({
+            status: 400,
+            message: 'spaceId é obrigatório para usuários com permissões de administrador.',
+          });
+        }
+
+        const spaceExists = await new Promise((resolve, reject) => {
+          this.db.get(
+            `SELECT * FROM spaces WHERE id = ?`, 
+            [createUserDto.spaceId], 
+            (err, row: any) => {
+              if (err) reject(err);
+            }
+          );
+        });
+      
+        if (!spaceExists) {
+          throw new BadRequestException({
+            status: 400,
+            message: 'Space not found',
+          });
+        }
+      
         await new Promise((resolve, reject) => {
           this.db.run(
             `INSERT INTO permissions (space_id, user_id, perms) 
-             SELECT id, ?, ? 
+             SELECT ?, ?, ? 
              FROM spaces`, 
             [username, 'a'],
             (err) => {

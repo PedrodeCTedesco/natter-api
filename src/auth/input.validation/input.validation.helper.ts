@@ -56,15 +56,20 @@ export function validateDate(date: string): boolean {
 }
 
 export function escapeSpecialCharacters(input: string): string {
-    return input
-      .replace(/&/g, '&amp;')  // & -> &amp;
-      .replace(/</g, '&lt;')   // < -> &lt;
-      .replace(/>/g, '&gt;')   // > -> &gt;
-      .replace(/"/g, '&quot;') // " -> &quot;
-      .replace(/'/g, '&#039;') // ' -> &#039;
-      .replace(/\//g, '&#047;'); // / -> &#047;
-}
+    if (!input)  return input;
 
+    const hasSpecialCharacters = /[&<>"'/]/.test(input);
+    if (!hasSpecialCharacters) return input;
+
+    return input
+        .replace(/&/g, '&amp')  // & -> &amp;
+        .replace(/</g, '&lt')   // < -> &lt;
+        .replace(/>/g, '&gt')   // > -> &gt;
+        .replace(/"/g, '&quot') // " -> &quot;
+        .replace(/'/g, '&#039') // ' -> &#039;
+        .replace(/\//g, '&#047'); // / -> &#047;
+}
+  
 export function validateUsername(username: string): boolean {
     const regex: RegExp = /^[a-zA-Z][a-zA-Z0-9 ]{1,29}$/;
     if(!username) throw new BadRequestException({ status: 400, message: 'o campo "username" não pode estar vazio.' });

@@ -46,7 +46,8 @@ describe('UsersService', () => {
         const createUserDto: CreateUserDto = {
           username: configService.get<string>('USERNAME'),
           password: configService.get<string>('PASSWORD'),
-          permissions: configService.get<string>('ADMIN')
+          permissions: configService.get<string>('ADMIN'),
+          spaceId: 1
         };
         
         // Act
@@ -379,8 +380,37 @@ describe('UsersService', () => {
   });
 
   describe(USER_METHODS.FIND_ALL, () => {
-    it('should return the users with the correct interface', () => {
+    describe('success', () => {
+      it('should return the users with the correct interface', async () => {
+        // Arrange, Act
+        const result = await service.getUsers();
       
+        // Assert
+        result.forEach(user => {
+          expect(user).toMatchObject({
+            user_id: expect.any(String),
+            permissions: expect.any(Array),
+          });
+      
+          user.permissions.forEach(permission => {
+            expect(permission).toMatchObject({
+              space_id: expect.anything(), 
+              perms: expect.anything() 
+            });
+          });
+        });
+      });
     });
+
+    describe('failure', () => {
+      it('should handle no users returned', async () => {
+        jest.spyOn(service, USER_METHODS.FIND_ALL).mockResolvedValue([]);
+    
+        const result = await service.getUsers();
+        expect(result).toHaveLength(0);
+      });
+    });
+    
+    
   })
 });

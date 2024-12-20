@@ -4,7 +4,7 @@ import { DynamicModule, Type } from "@nestjs/common";
 import * as sqlite3 from 'sqlite3';
 import { TestDatabaseModule } from "./database.test.module";
 
-export async function setupTest(moduleToTest?: string) {
+export async function setupTest(moduleToTest?: string, providers?: any) {
   
   const db = new sqlite3.Database(':memory:');
   let targetModule: Type<any> | DynamicModule | undefined;

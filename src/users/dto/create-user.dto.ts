@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsOptional, IsString, Length, MaxLength } from "class-validator";
+import { IsInt, IsNotEmpty, IsOptional, IsString, Length, MaxLength, Min } from "class-validator";
 
 export class CreateUserDto {
     @IsNotEmpty()
@@ -17,4 +17,9 @@ export class CreateUserDto {
     @IsString()
     @MaxLength(5, { message: 'permissões não podem exceder 5 caracteres'})
     permissions?: string;
+
+    @IsOptional()
+    @IsInt({ message: 'spaceId deve ser um número inteiro válido.' })
+    @Min(1, { message: 'spaceId deve ser maior que zero.' })
+    spaceId?: number;
 }

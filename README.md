@@ -56,7 +56,23 @@ Se bem-sucedido você terá esta reposta:
 }
 ```
 
+Para criação de um usuário com permissões de administrador é necessário que exista um espaço para que esse usuário possa exercer suas capacidades relativas ao seu nível de acesso:
+
+```
+{
+  "username": "newUser",
+  "password": "userPassword123",
+  "permissions": "a",
+  "spaceId": 1
+}
+
+```
+
 Para testes em relação ao registro de usuário
 ```
 npx jest src/users/users.service.spec.ts
 ```
+
+## Cenário [ requisito ]: espaço existente
+
+Para que você possa registrar um usuário o espaço ao qual ele será associado deve existir previamente. 
