@@ -7,5 +7,6 @@ import { DatabaseModule } from '../config/database/database.module';
   imports: [DatabaseModule],
   controllers: [SocialSpacesController],
   providers: [SocialSpacesService],
+  exports: [SocialSpacesService]
 })
 export class SocialSpacesModule {}

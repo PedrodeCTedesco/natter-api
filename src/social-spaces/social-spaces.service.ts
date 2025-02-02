@@ -1,4 +1,4 @@
-import { Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { CreateSocialSpaceDto } from './dto/create-social-space.dto';
 import { Response } from 'express';
 import { Logger } from '@nestjs/common';
@@ -6,7 +6,6 @@ import * as sqlite3 from 'sqlite3';
 import { UpdateSocialSpaceDto } from './dto/update-social-space.dto';
 import { AuthService } from '../auth/auth.service';
 import { escapeSpecialCharacters, validateSpaceId, validateUserInput, validateUserInputFormat, validateUsername } from '../auth/input.validation/input.validation.helper';
-
 
 @Injectable()
 export class SocialSpacesService {
@@ -290,6 +289,45 @@ export class SocialSpacesService {
     });
   }
 
+  async findOne(id: number): Promise<any> {
+    console.log('Iniciando findOne com id:', id);
+    
+    if (!id) {
+      console.log('ID inválido:', id);
+      throw new BadRequestException({
+        status: 400,
+        message: 'ID do espaço é obrigatório'
+      });
+    }
+  
+    return new Promise((resolve, reject) => {
+      console.log('Executando query para space id:', id);
+      
+      this.db.get('SELECT * FROM spaces WHERE id = ?', [id], (err, row) => {
+        if (err) {
+          console.log('Erro na query:', err);
+          return reject(new BadRequestException({
+            status: 400,
+            message: 'Erro ao buscar espaço'
+          }));
+        }
+        
+        console.log('Resultado da query:', row);
+        
+        if (!row) {
+          console.log('Nenhum espaço encontrado para id:', id);
+          return reject(new BadRequestException({
+            status: 400,
+            message: 'Espaço não encontrado'
+          }));
+        }
+        
+        console.log('Espaço encontrado:', row);
+        resolve(row);
+      });
+    });
+  }
+
   async updateSpace(id: number, updateSocialSpace: UpdateSocialSpaceDto) {
     return new Promise((resolve, reject) => {
       // Query para atualizar o espaço
@@ -320,44 +358,103 @@ export class SocialSpacesService {
   
       // Verifica se as permissões são válidas
       if (!permissions.match(/^r?w?d?$/)) {
-        throw new Error('Permissões inválidas. Use combinações de "r", "w", "d".');
+        throw new BadRequestException({
+          status: 400,
+          message: 'Permissões inválidas. Use combinações de "r", "w", "d".'
+        });
       }
   
-      // Verifica se o espaço existe
+      // Verifica se o espaço existe usando findOne
+      try {
+        const space = await this.findOne(spaceId);
+        if (!space) {
+          throw new BadRequestException({
+            status: 400,
+            message: 'Espaço não encontrado'
+          });
+        }
+      } catch (err) {
+        this.logger.error(`Erro ao verificar existência do espaço: ${err.message}`);
+        if (err instanceof BadRequestException) {
+          throw err;
+        }
+        throw new BadRequestException({
+          status: 400,
+          message: 'Erro ao verificar existência do espaço'
+        });
+      }
+  
+      // Verifica se o usuário existe
       return new Promise((resolve, reject) => {
         this.db.get(
-          `SELECT id FROM spaces WHERE id = ?`,
-          [spaceId],
-          (err, space) => {
-            if (err) {
-              this.logger.error(`Erro ao verificar existência do espaço: ${err.message}`);
-              return reject(new Error('Erro ao verificar existência do espaço'));
+          `SELECT user_id FROM users WHERE user_id = ?`,
+          [username],
+          (userErr, user) => {
+            if (userErr) {
+              this.logger.error(`Erro ao verificar usuário: ${userErr.message}`);
+              return reject(new BadRequestException({
+                status: 400,
+                message: 'Erro ao verificar existência do usuário'
+              }));
             }
   
-            if (!space) {
-              return reject(new Error('Espaço não encontrado'));
+            if (!user) {
+              return reject(new BadRequestException({
+                status: 400,
+                message: 'Usuário não encontrado'
+              }));
             }
   
-            // Se o espaço existe, adiciona o membro
-            this.db.run(
-              `INSERT INTO permissions (space_id, user_id, perms) VALUES (?, ?, ?)`,
-              [spaceId, username, permissions],
-              (insertErr) => {
-                if (insertErr) {
-                  this.logger.error(`Erro ao adicionar membro: ${insertErr.message}`);
-                  reject(new Error('Erro ao adicionar membro ao espaço'));
-                } else {
-                  resolve({ username, permissions });
+            // Verifica se o usuário já tem permissões neste espaço
+            this.db.get(
+              `SELECT * FROM permissions WHERE space_id = ? AND user_id = ?`,
+              [spaceId, username],
+              (permErr, existingPerm) => {
+                if (permErr) {
+                  this.logger.error(`Erro ao verificar permissões existentes: ${permErr.message}`);
+                  return reject(new BadRequestException({
+                    status: 400,
+                    message: 'Erro ao verificar permissões existentes'
+                  }));
                 }
+  
+                if (existingPerm) {
+                  return reject(new BadRequestException({
+                    status: 400,
+                    message: 'Usuário já possui permissões neste espaço'
+                  }));
+                }
+  
+                // Adiciona o membro com as permissões
+                this.db.run(
+                  `INSERT INTO permissions (space_id, user_id, perms) VALUES (?, ?, ?)`,
+                  [spaceId, username, permissions],
+                  (insertErr) => {
+                    if (insertErr) {
+                      this.logger.error(`Erro ao adicionar membro: ${insertErr.message}`);
+                      return reject(new BadRequestException({
+                        status: 400,
+                        message: 'Erro ao adicionar membro ao espaço'
+                      }));
+                    }
+                    resolve({ username, permissions });
+                  }
+                );
               }
             );
           }
         );
       });
   
-    } catch(err) {
+    } catch (err) {
       this.logger.error(`Erro ao adicionar membro: ${err.message}`);
-      throw err;
+      if (err instanceof BadRequestException) {
+        throw err;
+      }
+      throw new BadRequestException({
+        status: 400,
+        message: err.message || 'Erro ao adicionar membro'
+      });
     }
   }
 }

@@ -6,6 +6,7 @@ import * as sqlite3 from 'sqlite3';
 import { SavedUser, User, UserDB } from './interfaces/user.interface';
 import { validatePassword, validatePermissions, validateUsername } from '../auth/input.validation/input.validation.helper';
 import { USER_METHODS } from './constants/identifiers.methods';
+import { SocialSpacesService } from 'src/social-spaces/social-spaces.service';
 
 @Injectable()
 export class UsersService {
@@ -14,14 +15,53 @@ export class UsersService {
   constructor(
     private readonly configService: ConfigService,
     @Inject('DATABASE') private readonly db: sqlite3.Database,
+    @Inject(SocialSpacesService) private readonly socialSpaceService: SocialSpacesService
   ) {}
   
   async [USER_METHODS.CREATE](createUserDto: CreateUserDto): Promise<SavedUser> {
-    const { username, password, permissions = '' } = createUserDto;
-
-    validateUsername(createUserDto.username);
-    validatePassword(createUserDto.password);
-    if(permissions) validatePermissions(createUserDto.permissions);
+    const { username, password, spaceId, permissions = '' } = createUserDto;
+    validatePassword(password);
+    validatePermissions(permissions);
+    validateUsername(username);
+    
+    console.log('Iniciando criação de usuário com dados:', { 
+      username, 
+      spaceId, 
+      permissions 
+    });
+  
+    // Verificar se o espaço existe antes de qualquer outra operação
+    if (!spaceId && permissions === 'a') {
+      throw new BadRequestException({
+        status: 400,
+        message: 'spaceId é obrigatório para usuários com permissões de administrador'
+      });
+    }
+  
+    if (spaceId) {
+      try {
+        console.log('Verificando espaço:', spaceId);
+        const space = await this.socialSpaceService.findOne(spaceId);
+        console.log('Resultado da verificação do espaço:', space);
+        
+        if (!space) {
+          console.log('Espaço não encontrado');
+          throw new BadRequestException({
+            status: 400,
+            message: 'Espaço inexistente'
+          });
+        }
+      } catch (err) {
+        console.log('Erro ao verificar espaço:', err);
+        if (err instanceof BadRequestException) {
+          throw err;
+        }
+        throw new BadRequestException({
+          status: 400,
+          message: err.message || 'Erro ao verificar espaço'
+        });
+      }
+    }
   
     try {
       const salt: string = await bcrypt.genSalt(
@@ -29,77 +69,60 @@ export class UsersService {
       );
       const hash: string = await bcrypt.hash(password, salt);
   
-      try {
-        await new Promise((resolve, reject) => {
-          this.db.run(
-            `INSERT INTO users (user_id, pw_hash) VALUES (?, ?)`, 
-            [username, hash], 
-            (err) => {
-              if (err) reject(err);
-              else resolve(true);
+      // Inserir usuário
+      await new Promise<void>((resolve, reject) => {
+        console.log('Inserindo usuário:', username);
+        this.db.run(
+          `INSERT INTO users (user_id, pw_hash) VALUES (?, ?)`, 
+          [username, hash], 
+          (err) => {
+            if (err) {
+              console.log('Erro ao inserir usuário:', err);
+              if (err.message.includes('UNIQUE constraint failed')) {
+                return reject(new BadRequestException({
+                  status: 400,
+                  message: 'User with this username already exists'
+                }));
+              }
+              return reject(err);
             }
-          );
-        });
-      } catch (error) {
-        if (error.message) { 
-          this.logger.error(`Duplicate username detected: ${username}`);
-          throw new BadRequestException({ status: 400, message: 'User with this username already exists'});
-        }
-        throw error;
-      }
+            resolve();
+          }
+        );
+      });
   
+      // Tratar permissões de administrador
       if (permissions === 'a') {
-        if (!createUserDto.spaceId) {
-          throw new BadRequestException({
-            status: 400,
-            message: 'spaceId é obrigatório para usuários com permissões de administrador.',
-          });
-        }
-
-        const spaceExists = await new Promise((resolve, reject) => {
-          this.db.get(
-            `SELECT * FROM spaces WHERE id = ?`, 
-            [createUserDto.spaceId], 
-            (err, row: any) => {
-              if (err) reject(err);
-            }
-          );
-        });
-      
-        if (!spaceExists) {
-          throw new BadRequestException({
-            status: 400,
-            message: 'Space not found',
-          });
-        }
-      
-        await new Promise((resolve, reject) => {
+        await new Promise<void>((resolve, reject) => {
+          console.log('Inserindo permissões para:', username);
           this.db.run(
-            `INSERT INTO permissions (space_id, user_id, perms) 
-             SELECT ?, ?, ? 
-             FROM spaces`, 
-            [username, 'a'],
+            `INSERT INTO permissions (user_id, space_id, perms) VALUES (?, ?, ?)`, 
+            [username, spaceId, permissions],
             (err) => {
-              if (err) reject(err);
-              else resolve(true);
+              if (err) {
+                console.log('Erro ao inserir permissões:', err);
+                return reject(err);
+              }
+              resolve();
             }
           );
         });
       }
   
+      console.log('Usuário criado com sucesso:', username);
       return { 
         username: username,
         created: true 
       };
     } catch (error) {
-      if (error.message) { 
-        this.logger.error(`Duplicate username detected: ${username}`);
-        throw new BadRequestException({
-          status: 400,
-          message: 'User with this username already exists',
-        });
+      console.log('Erro no processo de criação:', error);
+      if (error instanceof BadRequestException) {
+        throw error;
       }
-      throw error;
+      throw new BadRequestException({
+        status: 400,
+        message: error.message || 'Erro ao criar usuário'
+      });
     }
   }
 

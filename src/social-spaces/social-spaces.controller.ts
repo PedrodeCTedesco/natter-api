@@ -17,6 +17,11 @@ export class SocialSpacesController {
     return this.socialSpacesService.findAll();
   }
 
+  @Get(':id')
+  async findOne(@Param('id') id: number): Promise<SocialSpace> {
+    return this.socialSpacesService.findOne(id);
+  }
+
   @Post('safe/simple')
   async createSpace(
     @Body() createSocialSpaceDto: CreateSocialSpaceDto,

@@ -15,9 +15,34 @@ import { DatabaseModule } from './config/database/database.module';
 import { AuditLoggingModule } from './audit_logging/audit_logging.module';
 import { AuditInterceptor } from './interceptor/audit.logging.interceptor';
 import { AuditMiddleware } from './middleware/audit_logging/audit.logging.middleware';
+import { ServeStaticModule } from '@nestjs/serve-static';
+import { join } from 'path';
 
 @Module({
   imports: [
+    ServeStaticModule.forRoot({
+      rootPath: join(__dirname, '..', 'public'),
+      serveRoot: '/static',
+      serveStaticOptions: {
+        index: 'index.html',
+        extensions: ['html'],
+        setHeaders: (res, path) => {
+          const contentTypeMap: Record<string, string> = {
+            '.html': 'text/html',
+            '.css': 'text/css',
+            '.js': 'application/javascript',
+            '.png': 'image/png',
+            '.jpg': 'image/jpeg',
+            '.ico': 'image/x-icon',
+          };
+    
+          const ext = path.substring(path.lastIndexOf('.'));
+          if (contentTypeMap[ext]) {
+            res.setHeader('Content-Type', contentTypeMap[ext]);
+          }
+        },
+      },
+    }),
     ThrottlerModule.forRoot([{
       name: 'short',
       ttl: 1000,
@@ -74,10 +99,10 @@ export class AppModule {
     // HeaderAuthMiddleware agora vem ANTES do AuditMiddleware
     consumer
       .apply(HeaderAuthMiddleware)
-      .exclude({ 
-        path: 'users', 
-        method: RequestMethod.POST 
-      })
+      .exclude(
+        { path: 'users', method: RequestMethod.POST },
+        { path: 'static/*', method: RequestMethod.ALL }
+      )
       .forRoutes({ path: '*', method: RequestMethod.ALL });
     
     // AuditMiddleware vem depois da autenticação
