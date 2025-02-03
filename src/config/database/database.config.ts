@@ -170,7 +170,7 @@ export async function populateInitialData(db: sqlite3.Database): Promise<void> {
   try {
     // Create admin user with hashed password
     const adminUsername = 'admin';
-    const adminPassword = 'admin123';
+    const adminPassword = 'admin@123';
     const salt = await bcrypt.genSalt(10);
     const hash = await bcrypt.hash(adminPassword, salt);
 

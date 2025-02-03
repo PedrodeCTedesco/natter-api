@@ -17,6 +17,7 @@ import { AuditInterceptor } from './interceptor/audit.logging.interceptor';
 import { AuditMiddleware } from './middleware/audit_logging/audit.logging.middleware';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
+import { TokenModule } from './token/token.module';
 
 @Module({
   imports: [
@@ -66,7 +67,8 @@ import { join } from 'path';
     MessagesModule,
     AuthModule,
     UsersModule,
-    AuditLoggingModule
+    AuditLoggingModule,
+    TokenModule
   ],
   controllers: [AppController],
   providers: [
@@ -99,11 +101,9 @@ export class AppModule {
     .apply(HeaderConfigMiddleware)
     .forRoutes({ path: '*', method: RequestMethod.ALL });
     
-    // HeaderAuthMiddleware agora vem ANTES do AuditMiddleware
     consumer
       .apply(HeaderAuthMiddleware)
       .exclude(
-        { path: 'users', method: RequestMethod.POST },
         { path: 'static/*', method: RequestMethod.ALL }
       )
       .forRoutes({ path: '*', method: RequestMethod.ALL });
