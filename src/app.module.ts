@@ -35,12 +35,15 @@ import { join } from 'path';
             '.jpg': 'image/jpeg',
             '.ico': 'image/x-icon',
           };
-    
+        
           const ext = path.substring(path.lastIndexOf('.'));
           if (contentTypeMap[ext]) {
             res.setHeader('Content-Type', contentTypeMap[ext]);
+            res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate, max-age=0');
+            res.setHeader('Pragma', 'no-cache');
+            res.setHeader('Expires', '0');
           }
-        },
+        }
       },
     }),
     ThrottlerModule.forRoot([{

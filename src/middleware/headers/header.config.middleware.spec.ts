@@ -5,9 +5,9 @@ import { HeaderConfigMiddleware } from "./header.config.middleware";
 import * as express from 'express';
 import { ExpressAdapter } from '@nestjs/platform-express';
 import * as request from 'supertest';
-import { SocialSpacesModule } from "../social-spaces/social-spaces.module";
+import { SocialSpacesModule } from "../../social-spaces/social-spaces.module";
 import { TypeOrmModule } from "@nestjs/typeorm";
-import { SocialSpace } from "../social-spaces/entities/social-space.entity";
+import { SocialSpace } from "../../social-spaces/entities/social-space.entity";
 
 describe("capture header content-type", () => {
     let app: INestApplication;

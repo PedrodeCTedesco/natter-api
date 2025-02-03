@@ -11,6 +11,7 @@ function createSpace(name, owner) {
         credentials: 'include',
         body: JSON.stringify(data),
         headers: {
+            'Accept': 'text/html',
             'Content-Type':'application/json'
         }
     }).then(response => {
