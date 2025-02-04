@@ -18,6 +18,8 @@ import { AuditMiddleware } from './middleware/audit_logging/audit.logging.middle
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { TokenModule } from './token/token.module';
+import { CookieTokenStore } from './token/cookie.token.store';
+import { TOKEN_STORE } from './token/constants/token.store.constants';
 
 @Module({
   imports: [
@@ -80,6 +82,10 @@ import { TokenModule } from './token/token.module';
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor
     },
+      {
+        provide: TOKEN_STORE,
+        useClass: CookieTokenStore
+      },
     AppService
   ],
 })

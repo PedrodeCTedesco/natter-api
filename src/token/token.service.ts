@@ -1,15 +1,16 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { Instant, ChronoUnit } from '@js-joda/core';
 import { TokenStore } from '../interfaces/toke.store.interface';
 import { Token } from './token';
 import { AuditService } from '../audit_logging/audit_logging.service';
 import { AUDIT_LOGGING_SERVICE } from '../audit_logging/constants/audit.logging.method.identifiers';
+import { TOKEN_STORE } from './constants/token.store.constants';
 
 @Injectable()
 export class TokenService {
     constructor(
-        private readonly tokenStore: TokenStore,
+        @Inject(TOKEN_STORE) private readonly tokenStore: TokenStore,
         private readonly auditService: AuditService
     ) {}
 
