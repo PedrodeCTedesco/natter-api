@@ -3,6 +3,7 @@ import { Request } from 'express';
 import { Token } from './token';
 import { TokenStore } from '../interfaces/toke.store.interface';
 import { Instant } from '@js-joda/core';
+import { inspect, promisify } from 'node:util';
 
 declare module 'express-session' {
     interface SessionData {
@@ -17,8 +18,11 @@ declare module 'express-session' {
 @Injectable()
 export class CookieTokenStore implements TokenStore {
     async create(request: Request, token: Token): Promise<string> {
-        if (!request.session) {
-            throw new Error('Session middleware not initialized');
+        if (!request.session) throw new Error('Session middleware not initialized');
+
+        if (request.session.token) {
+            const regenerateSession = promisify(request.session.regenerate.bind(request.session));
+            await regenerateSession();
         }
 
         const sessionToken = {
@@ -32,16 +36,13 @@ export class CookieTokenStore implements TokenStore {
     }
 
     async read(request: Request, tokenId: string): Promise<Token | undefined> {
-        if (!request.session?.token || request.sessionID !== tokenId) {
-            return undefined;
-        }
+        if (!request.session?.token || request.sessionID !== tokenId) return undefined;
+        inspect(request.session?.token, { depth: null, colors: true })
 
         const { expiry, username, attributes } = request.session.token;
-        // Converter string para Instant
         const expiryInstant = Instant.parse(expiry);
         const token = new Token(expiryInstant, username);
         
-        // Copiar os atributos para o novo token
         attributes.forEach((value: any, key: string) => {
             token.attributes.set(key, value);
         });

@@ -15,10 +15,8 @@ export class TokenService {
     ) {}
 
     async login(request: Request, response: Response): Promise<any> {
-        // Gera um ID de auditoria
         const auditId = await this.auditService[AUDIT_LOGGING_SERVICE.GENERATE_AUDIT_ID]();
 
-        // Registra o início da requisição
         await this.auditService[AUDIT_LOGGING_SERVICE.LOG_REQUEST_START]({
             auditId,
             method: request.method,
@@ -31,7 +29,6 @@ export class TokenService {
         const token = new Token(expiry, subject);
 
         try {
-            // Atualiza o log com informações do usuário
             await this.auditService[AUDIT_LOGGING_SERVICE.UPDATE_LOG]({
                 auditId,
                 userId: subject
@@ -39,7 +36,6 @@ export class TokenService {
 
             const tokenId = await this.tokenStore.create(request, token);
 
-            // Finaliza o log da requisição
             await this.auditService[AUDIT_LOGGING_SERVICE.LOG_REQUEST_END]({
                 auditId,
                 method: request.method,
@@ -52,7 +48,6 @@ export class TokenService {
                 token: tokenId
             });
         } catch (error) {
-            // Finaliza o log da requisição em caso de erro
             await this.auditService[AUDIT_LOGGING_SERVICE.LOG_REQUEST_END]({
                 auditId,
                 method: request.method,
@@ -64,6 +59,17 @@ export class TokenService {
             response.status(500).json({
                 message: 'Failed to create session token',
                 error: error.message
+            });
+        }
+    }
+
+    async validateToken(request: Request): Promise<void> {
+        const token = await this.tokenStore.read(request, request.sessionID);
+        
+        if (token && Instant.now().isBefore(token.expiry)) {
+            request['user'] = token.username;
+            token.attributes.forEach((value, key) => {
+                request[key] = value;
             });
         }
     }

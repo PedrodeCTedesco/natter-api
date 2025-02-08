@@ -3,12 +3,27 @@ import { Request, Response, NextFunction } from "express";
 import { UsersService } from "src/users/users.service";
 import * as bcrypt from "bcrypt";
 import { UserDB } from "src/users/interfaces/user.interface";
+import { TokenService } from "src/token/token.service";
 
 @Injectable()
 export class HeaderAuthMiddleware implements NestMiddleware {
-    constructor(private readonly userService: UsersService) {}
+    constructor(
+        private readonly userService: UsersService,
+        private readonly tokenService: TokenService
+    ) {}
 
     async use(req: Request, res: Response, next: NextFunction) {
+        try {
+            // Tenta validar o token
+            await this.tokenService.validateToken(req);
+            if (req['user']) {
+                // Se o token for válido, o usuário já está autenticado
+                return next();
+            }
+        } catch (error) {
+            console.error('Token validation error:', error.message);
+        }
+
         const authorizationHeader = req.headers['authorization'];
         const acceptHeader = req.headers['accept'];
 

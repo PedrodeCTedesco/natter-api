@@ -15,10 +15,12 @@ async function bootstrap() {
       secret: 'your-secret-key',
       resave: false,
       saveUninitialized: false,
+      name: '__Host-session',
       cookie: { 
         secure: process.env.NODE_ENV === 'development',
         httpOnly: true,
-        maxAge: 600000
+        maxAge: 600000,
+        path: '/'
       }
     })
   );
