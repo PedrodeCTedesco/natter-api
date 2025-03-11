@@ -4,7 +4,7 @@ import { Request, Response, NextFunction } from 'express';
 @Injectable()
 export class ThrottleLoggerMiddleware implements NestMiddleware {
   private readonly logger = new Logger(ThrottleLoggerMiddleware.name);
-  private requestCounts = new Map<string, { count: number; timestamp: number }>();
+  private readonly requestCounts = new Map<string, { count: number; timestamp: number }>();
 
   use(req: Request, res: Response, next: NextFunction) {
     const ip = req.ip;
