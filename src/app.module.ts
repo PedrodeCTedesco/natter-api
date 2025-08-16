@@ -20,6 +20,7 @@ import { join } from 'path';
 import { TokenModule } from './token/token.module';
 import { CookieTokenStore } from './token/cookie.token.store';
 import { TOKEN_STORE } from './token/constants/token.store.constants';
+import { BasicAuthMiddleware } from './middleware/basic.auth/basic.auth.middleware';
 
 @Module({
   imports: [
@@ -104,17 +105,21 @@ export class AppModule {
       .forRoutes({ path: '*', method: RequestMethod.ALL });
 
     consumer
+      .apply(BasicAuthMiddleware)
+      .forRoutes({ path: 'auth/login', method: RequestMethod.POST });      
+
+    consumer
     .apply(HeaderConfigMiddleware)
     .forRoutes({ path: '*', method: RequestMethod.ALL });
     
     consumer
       .apply(HeaderAuthMiddleware)
       .exclude(
-        { path: 'static/*', method: RequestMethod.ALL }
+        { path: 'static/*', method: RequestMethod.ALL },
+        { path: 'auth/login', method: RequestMethod.POST}
       )
       .forRoutes({ path: '*', method: RequestMethod.ALL });
     
-    // AuditMiddleware vem depois da autenticação
     consumer
       .apply(AuditMiddleware)
       .forRoutes({ path: "*", method: RequestMethod.ALL});

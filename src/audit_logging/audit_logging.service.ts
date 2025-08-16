@@ -3,11 +3,12 @@ import * as sqlite3 from 'sqlite3';
 import { AuditLog } from './interfaces/audit.log.interface';
 import { AUDIT_LOGGING_SERVICE } from './constants/audit.logging.method.identifiers';
 import { HTTP_METHODS } from './constants/audit.logging.http';
+import { DATABASE_TOKEN } from 'src/interfaces/interfaces.tokens/token.database';
 
 @Injectable()
 export class AuditService {
   constructor(
-    @Inject('DATABASE') private readonly db: sqlite3.Database
+    @Inject(DATABASE_TOKEN) private readonly db: sqlite3.Database
   ) {}
 
   async [AUDIT_LOGGING_SERVICE.GENERATE_AUDIT_ID](): Promise<number> {
