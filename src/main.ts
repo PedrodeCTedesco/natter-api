@@ -17,7 +17,7 @@ async function bootstrap() {
       saveUninitialized: false,
       name: '__Host-session',
       cookie: { 
-        secure: process.env.NODE_ENV === 'development',
+        secure: true,
         httpOnly: true,
         maxAge: 600000,
         path: '/'

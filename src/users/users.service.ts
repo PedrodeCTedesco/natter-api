@@ -6,16 +6,19 @@ import * as sqlite3 from 'sqlite3';
 import { SavedUser, User, UserDB } from './interfaces/user.interface';
 import { validatePassword, validatePermissions, validateUsername } from '../auth/input.validation/input.validation.helper';
 import { USER_METHODS } from './constants/identifiers.methods';
-import { SocialSpacesService } from 'src/social-spaces/social-spaces.service';
+import { DATABASE_TOKEN } from 'src/interfaces/interfaces.tokens/token.database';
+import { IUserService } from 'src/interfaces/user.service.interface';
+import { SOCIAL_SPACE_SERVICE_TOKEN } from 'src/interfaces/interfaces.tokens/token.social.space.service';
+import { ISocialSpace } from 'src/interfaces/social.space.service.interface';
 
 @Injectable()
-export class UsersService {
+export class UsersService implements IUserService {
   private readonly logger = new Logger(UsersService.name);
 
   constructor(
     private readonly configService: ConfigService,
-    @Inject('DATABASE') private readonly db: sqlite3.Database,
-    @Inject(SocialSpacesService) private readonly socialSpaceService: SocialSpacesService
+    @Inject(DATABASE_TOKEN) private readonly db: sqlite3.Database,
+    @Inject(SOCIAL_SPACE_SERVICE_TOKEN) private readonly socialSpaceService: ISocialSpace
   ) {}
   
   async [USER_METHODS.CREATE](createUserDto: CreateUserDto): Promise<SavedUser> {

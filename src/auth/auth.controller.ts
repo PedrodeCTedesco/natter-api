@@ -19,9 +19,6 @@ export class AuthController {
       throw new BadRequestException('Username and password are required');
     }
 
-    console.log('req.user antes do login:', req['user']);
-    
-    // Retorna o resultado do AuthService
     return await this.authService.login(req);
   }
 }

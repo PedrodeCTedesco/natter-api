@@ -32,7 +32,11 @@ export class BasicAuthMiddleware implements NestMiddleware {
       return res.status(401).json({ message: 'Invalid username or password' });
     }
 
-    req['user'] = { ...user, id: user.user_id };
+    req['user'] = { 
+      ...user, 
+      id: user.user_id, 
+       username: user.user_id 
+    };
     next();
   }
 }

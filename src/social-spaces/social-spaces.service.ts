@@ -6,13 +6,15 @@ import * as sqlite3 from 'sqlite3';
 import { UpdateSocialSpaceDto } from './dto/update-social-space.dto';
 import { AuthService } from '../auth/auth.service';
 import { escapeSpecialCharacters, validateSpaceId, validateUserInput, validateUserInputFormat, validateUsername } from '../auth/input.validation/input.validation.helper';
+import { DATABASE_TOKEN } from 'src/interfaces/interfaces.tokens/token.database';
+import { ISocialSpace } from 'src/interfaces/social.space.service.interface';
 
 @Injectable()
-export class SocialSpacesService {
+export class SocialSpacesService implements ISocialSpace {
   private readonly logger = new Logger(SocialSpacesService.name);
 
   constructor(
-    @Inject('DATABASE') private readonly db: sqlite3.Database
+    @Inject(DATABASE_TOKEN) private readonly db: sqlite3.Database
   ) {}
 
   // seguro e simples
@@ -328,7 +330,7 @@ export class SocialSpacesService {
     });
   }
 
-  async updateSpace(id: number, updateSocialSpace: UpdateSocialSpaceDto) {
+  async updateSpace(id: number, updateSocialSpace: UpdateSocialSpaceDto): Promise<any> {
     return new Promise((resolve, reject) => {
       // Query para atualizar o espaço
       const { name, owner } = updateSocialSpace;

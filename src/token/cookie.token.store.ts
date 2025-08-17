@@ -48,6 +48,12 @@ export class CookieTokenStore implements TokenStore {
     }
 
     async read(request: Request, tokenId: string): Promise<Token | undefined> {
+                console.log('dados: ', {
+            request: request.sessionID,
+            tokenId,
+            token: request.session?.token
+        })
+        
         if (!request.session?.token) return undefined;
 
         // Calcula SHA-256 do sessionID
@@ -64,10 +70,14 @@ export class CookieTokenStore implements TokenStore {
 
         const expiryInstant = Instant.parse(expiry);
         const token = new Token(expiryInstant, username);
-
-        attributes.forEach((value: any, key: string) => {
-            token.attributes.set(key, value);
-        });
+        
+        if (typeof attributes === 'object' && attributes !== null) {
+            for (const key in attributes) {
+                if (Object.hasOwn(attributes, key)) {
+                    token.attributes.set(key, attributes[key]);
+                }
+            }
+        }
 
         return token;
     }

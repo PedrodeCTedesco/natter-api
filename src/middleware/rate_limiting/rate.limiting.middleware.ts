@@ -12,7 +12,7 @@ export class ThrottleLoggerMiddleware implements NestMiddleware {
     const currentTime = Date.now();
     
     // Log da requisição recebida
-    this.logger.debug(`Incoming request from IP: ${ip} to path: ${path}`);
+    //this.logger.debug(`Incoming request from IP: ${ip} to path: ${path}`);
     
     // Gerenciamento do contador de requisições
     const requestInfo = this.requestCounts.get(ip) || { count: 0, timestamp: currentTime };
@@ -25,11 +25,11 @@ export class ThrottleLoggerMiddleware implements NestMiddleware {
     requestInfo.count++;
     this.requestCounts.set(ip, requestInfo);
 
-    this.logger.log(`Request count for IP ${ip}: ${requestInfo.count} in last second`);
+    //this.logger.log(`Request count for IP ${ip}: ${requestInfo.count} in last second`);
 
     // Log da resposta usando event listener
     res.on('finish', () => {
-      this.logger.debug(`Response status for ${path}: ${res.statusCode}`);
+      //this.logger.debug(`Response status for ${path}: ${res.statusCode}`);
       
       // Log adicional para respostas de throttling
       if (res.statusCode === 429) {
