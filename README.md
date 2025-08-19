@@ -1,78 +1,106 @@
-# Natter API
+# 🔐 Autenticação com Cookies de Sessão
 
-Criada para aprendizagem a partir do livro 'API security in action' by Neil Madden.
-Usar em conjunto com *natter-api-moderador*
+Esta branch demonstra a implementação de um sistema de autenticação seguro baseado em cookies de sessão, seguindo as melhores práticas de segurança apresentadas no livro **"API Security in Action"** - Capítulo 4.
 
-# Disclaimer
-Os códigos presentes neste repositório são para fins de aprendizagem, somente.
+## 📋 Visão Geral
 
-## Como rodar o projeto
+O sistema implementa um fluxo completo de autenticação que utiliza cookies seguros para gerenciar sessões de usuário, incorporando múltiplas camadas de proteção contra ataques comuns de segurança web.
 
-- Clone o repositório;
-- Instale as dependências com o comando: ``` npm install ```
+## ✨ Funcionalidades
 
-Inicie o servidor com o comando ``` npm run start:dev ```
+### 🔑 **Sistema de Autenticação**
+- **Login seguro** com validação de credenciais
+- **Logout** com limpeza adequada de sessão
+- **Geração automática** de cookies de sessão
 
-A aplicação criará um banco de dados SQLite em memória. Não estão sendo usados ORM's, pois apesar de mesmo com o seu uso as aplicações possam ainda estar vulneráveis a ataques de injeção, a opção por não utilizá-los visa ter um cenário padrão para aprendizagem. 
+### 🛡️ **Medidas de Segurança**
+- **Proteção contra Session Fixation**: Regeneração de session ID após login
+- **Proteção CSRF**: Implementação do padrão Double Submit Cookie
+- **Cookies seguros**: Configurações HttpOnly e Secure. É possível, também, a utilização de SameSite
+- **Injeção de dependência**: Arquitetura desacoplada para evitar dependências circulares
 
-### Certificados
+### 🏗️ **Arquitetura**
+- Classes especializadas para gerenciamento de cookies
+- Interfaces para extensibilidade
+- Endpoints RESTful dedicados
+- Separação clara de responsabilidades
 
-Os exemplos estarão em HTTPS por conta da instalação de certificados para uso deste protocolo. Caso os possua e queira instalá-los empregue a abordagem que você desejar. Se não quiser, substitua o protocolo dos exemplos para HTTP.
+## 🚀 Como Utilizar
 
-# Utilização
-
-Para poder utilizar as funcionalidades de segurança você pode seguir estes cenários.
-
-**Cenário: sem registro de usuário**: nesse cenário você pode testar todas as rotas da API. Como você não possuirá um usuário registrado o objetivo é que você não consiga acessar os dados presentes em cada rota. Logo, encontrarás códigos HTTP 401 e 403. 
-
-**Cenário: registro de usuário**: nesse cenário você poderá registrar um usuário. Para isso siga as etapas:
-
-- Realize um POST para a rota ``` https://localhost:8080/users ```. 
-
-Atente para os requisitos:
-
-a. Seu nome de usuário não pode estar vazio;
-b. Seu nome de usuário não pode ter mais do que 30 caracteres;
-c. Seu nome de usuário não pode conter caracteres especiais;
-d. Sua senha deve ter mais do que 8 e menos do que 255 caracteres;
-e. Sua senha deve possuir no mínimo 1 letra, 1 caractere especial e 1 número;
-f. O cabeçalho 'Content-Type' deve ser 'application/json';
-
-Um exemplo de *payload* válido:
-
-```
-{
-	"username": "pedro",
-	"password": "Senha@1234"
-}
+### 1. **Iniciar a Aplicação**
+```bash
+npm run start:dev
 ```
 
-Se bem-sucedido você terá esta reposta:
+### 2. **Acessar a Interface de Login**
+Navegue até: [https://localhost:3000/static/pages/login.html](https://localhost:3000/static/pages/login.html)
 
+### 3. **Realizar Login**
+Utilize as credenciais padrão:
+- **Usuário**: `admin`
+- **Senha**: `admin@123`
+
+### 4. **Verificar os Cookies**
+Após o login bem-sucedido:
+1. Abra o **DevTools** do navegador (`F12`)
+2. Navegue até a aba **Application** (Chrome) ou **Storage** (Firefox)
+3. Na seção **Cookies**, observe os cookies gerados:
+   - Cookie de sessão principal
+   - Token CSRF para proteção
+
+### 5. **Realizar Logout**
+Clique no botão de logout para:
+- Invalidar a sessão atual
+- Remover o cookie `csrfToken`
+- Limpar dados de autenticação
+
+## 🔍 Fluxo de Autenticação
+
+```mermaid
+sequenceDiagram
+    participant U as Usuário
+    participant B as Browser
+    participant S as Servidor
+    
+    U->>B: Acessa página de login
+    B->>S: GET /static/pages/login.html
+    S->>B: Retorna página
+    
+    U->>B: Insere credenciais
+    B->>S: POST /auth/login
+    S->>S: Valida credenciais
+    S->>S: Gera session ID
+    S->>S: Cria CSRF token
+    S->>B: Set cookies seguros
+    B->>U: Login realizado
+    
+    U->>B: Clica em logout
+    B->>S: POST /auth/logout
+    S->>S: Invalida sessão
+    S->>B: Remove cookies
+    B->>U: Logout realizado
 ```
-{
-	"username": "pedro",
-	"created": true
-}
-```
 
-Para criação de um usuário com permissões de administrador é necessário que exista um espaço para que esse usuário possa exercer suas capacidades relativas ao seu nível de acesso:
+## 🛡️ Medidas de Segurança Implementadas
 
-```
-{
-  "username": "newUser",
-  "password": "userPassword123",
-  "permissions": "a",
-  "spaceId": 1
-}
+### **Session Fixation Protection**
+- Nova sessão criada a cada login
+- Session ID anterior invalidado
+- Prevenção de sequestro de sessão
 
-```
+### **CSRF Protection - Double Submit Cookie**
+- Token CSRF associado criptograficamente a sessão do usuário
 
-Para testes em relação ao registro de usuário
-```
-npx jest src/users/users.service.spec.ts
-```
+### **Cookie Security**
+- `HttpOnly`: Previne acesso via JavaScript
+- `Secure`: Transmissão apenas via HTTPS
+- `SameSite`: Proteção contra ataques cross-site
 
-## Cenário [ requisito ]: espaço existente
+## 📚 Referências
 
-Para que você possa registrar um usuário o espaço ao qual ele será associado deve existir previamente. 
+Este projeto segue as diretrizes de segurança do livro:
+**"API Security in Action"** - Capítulo 4: Session-based Authentication
+
+---
+
+> **Nota**: Este é um projeto educacional focado no aprendizado de práticas de segurança em APIs. Para uso em produção, considere implementações adicionais de segurança conforme sua necessidade específica.

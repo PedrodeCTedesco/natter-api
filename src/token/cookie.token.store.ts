@@ -82,12 +82,52 @@ export class CookieTokenStore implements TokenStore {
         return token;
     }
 
+    async revoke(request: Request, tokenId: string): Promise<void> {
+        // Verifica se existe sessão
+        if (!request.session) {
+            return; // Equivalente ao "return" do Java quando session é null
+        }
+
+        // Decodifica o tokenId fornecido (Base64 URL-safe para Buffer)
+        const providedBuffer = this.base64UrlDecode(tokenId);
+
+        // Calcula SHA-256 do sessionID atual
+        const computedHash = crypto.createHash('sha256')
+            .update(request.sessionID)
+            .digest();
+
+        // Compara os hashes usando comparação em tempo constante
+        if (!crypto.timingSafeEqual(computedHash, providedBuffer)) {
+            return; // Token ID não corresponde à sessão atual
+        }
+
+        // Invalida a sessão
+        const destroySession = promisify(request.session.destroy.bind(request.session));
+        await destroySession();
+    }    
+
     private base64UrlEncode(buffer: Buffer): string {
         return buffer.toString('base64')
             .replace(/\+/g, '-')  // + → -
             .replace(/\//g, '_')  // / → _
             .replace(/=+$/, '');  // remove padding
-    }    
+    }
+
+    private base64UrlDecode(str: string): Buffer {
+        // Adiciona padding se necessário
+        let padded = str;
+        const remainder = padded.length % 4;
+        if (remainder) {
+            padded += '='.repeat(4 - remainder);
+        }
+
+        // Reverte as substituições do Base64 URL-safe
+        const base64 = padded
+            .replace(/-/g, '+')  // - → +
+            .replace(/_/g, '/'); // _ → /
+
+        return Buffer.from(base64, 'base64');
+    }
 
     private constantTimeEqual(a: string, b: string): boolean {
         const bufA = Buffer.from(a, 'utf-8');

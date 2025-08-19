@@ -1,4 +1,4 @@
-import { Controller, Post, Body, Req, BadRequestException } from '@nestjs/common';
+import { Controller, Post, Body, Req, BadRequestException, Delete } from '@nestjs/common';
 import { Request } from 'express';
 import { AuthService } from './auth.service';
 
@@ -20,5 +20,10 @@ export class AuthController {
     }
 
     return await this.authService.login(req);
+  }
+
+  @Delete('logout')
+  async logout(@Req() req: Request) {
+    return await this.authService.logout(req);
   }
 }

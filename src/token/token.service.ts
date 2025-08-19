@@ -1,4 +1,4 @@
-import { Inject, Injectable, HttpException, HttpStatus } from '@nestjs/common';
+import { Inject, Injectable, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
 import { Request } from 'express';
 import { Instant, ChronoUnit } from '@js-joda/core';
 import { TokenStore } from '../interfaces/toke.store.interface';
@@ -63,6 +63,18 @@ export class TokenService {
                 error: error.message
             }, HttpStatus.INTERNAL_SERVER_ERROR);
         }
+    }
+
+    async logout(req: Request): Promise<object> {
+        // Obtém o token ID do header X-CSRF-Token
+        const tokenId = req.headers['x-csrf-token'] as string;
+        
+        if (!tokenId) throw new BadRequestException('missing token header');
+
+        // Revoga o token usando o token service
+        await this.tokenStore.revoke(req, tokenId);
+
+        return {};
     }
 
     async validateToken(request: Request): Promise<void> {
