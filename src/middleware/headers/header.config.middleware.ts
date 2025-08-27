@@ -5,8 +5,11 @@ import { Request, Response, NextFunction } from 'express';
 export class HeaderConfigMiddleware implements NestMiddleware {
   use(req: Request, res: Response, next: NextFunction) {
 
-    if (req.method !== 'GET' && req.method !== 'HEAD' && req.method !== 'OPTIONS') {
+    if (req.method === 'OPTIONS') {
+      return next();
+    }
 
+    if (req.method !== 'GET' && req.method !== 'HEAD') {
       if (!req.headers['content-type']) {
         return res.status(415).json({
           statusCode: 415,
@@ -15,7 +18,6 @@ export class HeaderConfigMiddleware implements NestMiddleware {
           path: req.path
         });
       }
-      
 
       if (!req.headers['content-type'].includes('application/json')) {
         return res.status(415).json({

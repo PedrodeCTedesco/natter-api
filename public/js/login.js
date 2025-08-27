@@ -22,12 +22,12 @@ function login(username, password) {
         if (res.ok) {
             res.json().then(json => {
                 // Força a expiração do cookie com o path antigo para evitar duplicatas
-                document.cookie = 'csrfToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path=/static/pages';
+                document.cookie = 'csrfToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path=/pages'; // se fosse para mesma origem: Path=/static/pages
                 
                 // Define o novo cookie com o path global
                 document.cookie = 'csrfToken=' + json.token + ';Secure;SameSite=strict;Path=/';
                 
-                window.location.replace('/static/pages/index.html');
+                window.location.replace('/pages/index.html'); // se fosse para mesma origem: /static/pages/...
             });
         } else {
             // Em caso de erro na resposta, você pode ler o corpo para detalhes.
@@ -36,7 +36,7 @@ function login(username, password) {
             });
         }
     })
-    .catch(error => console.error('Error logging in: ', error));
+    .catch(error => console.error('Error logging in: ', error.message));
 }
 
 window.addEventListener('load', function(e) {

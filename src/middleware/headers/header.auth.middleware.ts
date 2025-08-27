@@ -24,8 +24,7 @@ export class HeaderAuthMiddleware implements NestMiddleware {
         // Lógica de autenticação com token de sessão (preferencial)
         try {
             // Tenta validar token de sessão (com CSRF)
-            const a = await this.tokenService.validateToken(req);
-            console.log('a: ', a)
+            await this.tokenService.validateToken(req);
             if (req['user']) {
               return next(); // Usuário autenticado via token, continue
             }

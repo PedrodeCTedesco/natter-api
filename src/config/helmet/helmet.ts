@@ -28,14 +28,13 @@ export const helmetConfig = helmet({
   // Desabilita X-XSS-Protection conforme recomendado para APIs
   xssFilter: false,
 
-  // 
-/*     Configurações do HSTS - para modo de desenvolvimento e em rede local pode ficar desativado
+    // Configurações do HSTS - para modo de desenvolvimento e em rede local pode ficar desativado
 
-hsts: {
+  hsts: {
     maxAge: 31536000,        // 1 ano
     includeSubDomains: true,
     preload: true,
-  }, */
+  },
 
   // Configurações adicionais de segurança
   referrerPolicy: { 
