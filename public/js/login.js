@@ -1,4 +1,4 @@
-const apiUrl = 'https://localhost:3000/';
+window.API_URL = window.API_URL || 'https://127.0.0.1:3000/';
 
 function login(username, password) {
     let credentials = 'Basic ' + btoa(username + ':' + password);
@@ -9,8 +9,9 @@ function login(username, password) {
         password: password
     };
 
-    fetch(apiUrl + 'auth/login', {
+    fetch(window.API_URL + 'auth/login', {
         method: 'POST',
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': credentials

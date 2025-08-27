@@ -10,6 +10,7 @@ export class BasicAuthMiddleware implements NestMiddleware {
   constructor(private readonly userService: UsersService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
+
     const authHeader = req.headers['authorization'];
     if (!authHeader) {
       return res.status(401).json({ message: 'Missing Authorization header' });

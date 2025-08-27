@@ -14,6 +14,11 @@ export class HeaderAuthMiddleware implements NestMiddleware {
     ) {}
 
     async use(req: Request, res: Response, next: NextFunction) {
+
+        if (req.method === 'OPTIONS') {
+            return next();
+        }
+
         // Lista de caminhos a serem ignorados pela validação de token e autenticação
         const ignoredPaths = Object.values(PATHS_TO_IGNORE_AUTH) as string[];
         // Se a requisição for para um caminho ignorado, pule o middleware

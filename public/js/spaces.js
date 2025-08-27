@@ -1,5 +1,4 @@
-
-const apiURL = 'https://localhost:3000/';
+window.API_URL = window.API_URL || 'https://127.0.0.1:3000/';
 
 // Função auxiliar para obter o valor de um cookie
 function getCookie(name) {
@@ -23,12 +22,12 @@ function createSpace(name, owner) {
         owner: owner
     };
 
-    fetch(apiURL + 'spaces/safe/simple', {
+    fetch(window.API_URL + 'spaces/safe/simple', {
         method: 'POST',
-        credentials: 'include',
+        credentials: 'include', // para envio de cookies com CORS
         body: JSON.stringify(data),
         headers: {
-            'Accept': 'text/html',
+            //'Accept': 'text/html',
             'Content-Type': 'application/json',
             'x-csrf-token': csrfToken // Adiciona o token aqui
         }

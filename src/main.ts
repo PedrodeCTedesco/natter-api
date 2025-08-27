@@ -32,6 +32,7 @@ async function bootstrap() {
       cookie: { 
         secure: true,
         httpOnly: true,
+        sameSite: 'none',
         maxAge: 600000,
         path: '/'
       }

@@ -1,5 +1,3 @@
-const apiUrl = 'https://localhost:3000/';
-
 function logout() {
     // Obtém o token CSRF dos cookies
     const csrfToken = getCsrfToken();
@@ -9,8 +7,9 @@ function logout() {
         return;
     }
 
-    fetch(apiUrl + 'auth/logout', {
+    fetch(window.API_URL + 'auth/logout', {
         method: 'DELETE',
+        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-Token': csrfToken
@@ -21,7 +20,7 @@ function logout() {
             // Logout bem-sucedido - limpa o cookie e redireciona
             document.cookie = 'csrfToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path=/';
             
-            window.location.replace('/static/pages/login.html');
+            window.location.replace('/pages/login.html'); // apenas em mesma origem: /static/pages/login.html
         } else {
             // Em caso de erro na resposta
             res.json().then(errorJson => {
