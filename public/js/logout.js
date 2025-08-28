@@ -1,24 +1,23 @@
 function logout() {
-    // Obtém o token CSRF dos cookies
-    const csrfToken = getCsrfToken();
+    // Obtém o token do local storage
+    const token = getToken();
     
-    if (!csrfToken) {
-        console.error('CSRF token not found');
+    if (!token) {
+        console.error('token not found');
         return;
     }
 
     fetch(window.API_URL + 'auth/logout', {
         method: 'DELETE',
-        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
-            'X-CSRF-Token': csrfToken
+            'Authorization': `Bearer ${token}`
         }
     })
     .then(res => {
         if (res.ok) {
-            // Logout bem-sucedido - limpa o cookie e redireciona
-            document.cookie = 'csrfToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path=/';
+            // Logout bem-sucedido - remove o token do local storage
+            localStorage.removeItem('token');
             
             window.location.replace('/pages/login.html'); // apenas em mesma origem: /static/pages/login.html
         } else {
@@ -31,13 +30,10 @@ function logout() {
     .catch(error => console.error('Error logging out: ', error));
 }
 
-function getCsrfToken() {
-    const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'csrfToken') {
-            return decodeURIComponent(value);
-        }
+function getToken() {
+    const token = localStorage.getItem('token');
+    if (token === 'token') {
+        return decodeURIComponent(value);
     }
     return null;
 }

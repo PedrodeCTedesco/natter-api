@@ -1,4 +1,4 @@
-import { Inject, Injectable, HttpException, HttpStatus, BadRequestException } from '@nestjs/common';
+import { Inject, Injectable, HttpException, HttpStatus } from '@nestjs/common';
 import { Request } from 'express';
 import { Instant, ChronoUnit } from '@js-joda/core';
 import { TokenStore } from '../interfaces/toke.store.interface';
@@ -49,6 +49,7 @@ export class TokenService {
             });
 
             return { token: tokenId };
+            
         } catch (error) {
             await this.auditService[AUDIT_LOGGING_SERVICE.LOG_REQUEST_END]({
                 auditId,
@@ -65,46 +66,73 @@ export class TokenService {
         }
     }
 
-    async logout(req: Request): Promise<object> {
-        // Obtém o token ID do header X-CSRF-Token
-        const tokenId = req.headers['x-csrf-token'] as string;
-        
-        if (!tokenId) throw new BadRequestException('missing token header');
+    async logout(request: Request): Promise<object> {
+        let tokenId = request.headers['authorization'];
+
+        // 1. Verifica se tem Authorization e se começa com "Bearer "
+        if (!tokenId?.startsWith('Bearer ')) {
+            throw new Error('Missing or invalid Authorization header');
+        }
+
+        // 2. Remove o prefixo "Bearer " e pega apenas o token
+        tokenId = tokenId.substring(7).trim();
 
         // Revoga o token usando o token service
-        await this.tokenStore.revoke(req, tokenId);
+        await this.tokenStore.revoke(request, tokenId);
 
         return {};
     }
 
-    async validateToken(request: Request): Promise<void> {
-        const csrfToken = request.headers['x-csrf-token'] as string;
+    async validateToken(request: Request, response?: any): Promise<void> {
+        let tokenId = request.headers['authorization'];
 
-        if (!csrfToken) {
-            throw new Error('Missing CSRF token');
+        // 1. Verifica se tem Authorization e se começa com "Bearer "
+        if (!tokenId?.startsWith('Bearer ')) {
+            throw new Error('Missing or invalid Authorization header');
         }
 
-        const token = await this.tokenStore.read(request, csrfToken);
+        // 2. Remove o prefixo "Bearer " e pega apenas o token
+        tokenId = tokenId.substring(7).trim();
+
+        // 3. Lê o token no store
+        const token = await this.tokenStore.read(request, tokenId);
 
         if (token && Instant.now().isBefore(token.expiry)) {
+            // 4. Valida usuário associado ao token
             const user = await this.userService.validateBasicAuth(token.username);
-            
+
             if (user) {
-                const userObj = {
-                    ...user,
-                    id: user.user_id,
-                    username: user.user_id
-                };
-                request['user'] = userObj;
+            const userObj = {
+                ...user,
+                id: user.user_id,
+                username: user.user_id,
+            };
+            request['user'] = userObj;
             } else {
-                console.log('❌ VALIDATE TOKEN - No user found for username:', token.username);
+            console.log('❌ VALIDATE TOKEN - No user found for username:', token.username);
             }
-            
+
+            // 5. Injeta atributos do token na request
             token.attributes.forEach((value, key) => {
-                request[key] = value;
+            request[key] = value;
             });
         } else {
-            throw new Error('Invalid or expired CSRF token');
+            // 6. Expirado ou inválido → responde com WWW-Authenticate (caso tenha response)
+            if (response) {
+            response.setHeader(
+                'WWW-Authenticate',
+                'Bearer error="invalid_token", error_description="Expired or invalid"'
+            );
+            }
+            throw new Error('Invalid or expired Bearer token');
         }
     }
+
+    async deleteExpiredTokens(): Promise<void> {
+        try {
+            return await this.tokenStore.deleteExpiredTokens();
+        } catch (err) {
+            console.error('Erro ao deletar tokens expirados: ', err.message);
+        }
+    } 
 }    

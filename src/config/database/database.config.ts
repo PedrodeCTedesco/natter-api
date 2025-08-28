@@ -140,17 +140,45 @@ export async function initializeDatabase(db: sqlite3.Database) {
     await runAsync(`
       CREATE INDEX IF NOT EXISTS idx_audit_events_created_at 
       ON audit_events(created_at)
+      `, (err) => {
+          if (err) {
+              console.error('Erro ao criar índice "idx_audit_events_created_at":', err);
+          } else {
+              console.log('Índice "idx_audit_events_created_at" criado com sucesso.');
+          }
+      });
+    } catch(err) {
+      console.error('Error initializing database:', err);
+      throw err;
+    }
+
+    await runAsync(`
+      CREATE TABLE IF NOT EXISTS tokens (
+        token_id VARCHAR(100) PRIMARY KEY,
+        user_id VARCHAR(30) NOT NULL,
+        expiry TIMESTAMP NOT NULL,
+        attributes VARCHAR(4096) NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users(user_id)
+      )
     `, (err) => {
-        if (err) {
-            console.error('Erro ao criar índice "idx_audit_events_created_at":', err);
-        } else {
-            console.log('Índice "idx_audit_events_created_at" criado com sucesso.');
-        }
+      if (err) {
+        console.error('Erro ao criar tabela "tokens":', err);
+      } else {
+        console.log('Tabela "tokens" criada com sucesso em memória.');
+        dbInfo(db, 'tokens');
+      }
     });
-  } catch(err) {
-    console.error('Error initializing database:', err);
-    throw err;
-  }
+
+    await runAsync(`
+      CREATE INDEX IF NOT EXISTS idx_tokens_expiry
+      ON tokens(expiry)
+    `, (err) => {
+      if (err) {
+        console.error('Erro ao criar índice "idx_tokens_expiry":', err);
+      } else {
+        console.log('Índice "idx_tokens_expiry" criado com sucesso.');
+      }
+    });    
 }
 
 function dbInfo(db: sqlite3.Database, tableName: string) {

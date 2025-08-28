@@ -1,19 +1,12 @@
 window.API_URL = window.API_URL || 'https://127.0.0.1:3000/';
 
-// Função auxiliar para obter o valor de um cookie
-function getCookie(name) {
-    const value = `; ${document.cookie}`;
-    const parts = value.split(`; ${name}=`);
-    if (parts.length === 2) return parts.pop().split(';').shift();
-}
-
 function createSpace(name, owner) {
-    // Pega o token CSRF do cookie
-    const csrfToken = getCookie('csrfToken');
+    // Pega o token
+    const token = localStorage.getItem('token');
 
     // Se o token não existir, não faz a requisição
-    if (!csrfToken) {
-        console.error('CSRF token not found. Please log in again.');
+    if (!token) {
+        console.error('token not found. Please log in again.');
         return;
     }
 
@@ -24,12 +17,10 @@ function createSpace(name, owner) {
 
     fetch(window.API_URL + 'spaces/safe/simple', {
         method: 'POST',
-        credentials: 'include', // para envio de cookies com CORS
         body: JSON.stringify(data),
         headers: {
-            //'Accept': 'text/html',
             'Content-Type': 'application/json',
-            'x-csrf-token': csrfToken // Adiciona o token aqui
+            'Authorization': `Bearer ${token}` // Adiciona o token aqui
         }
     }).then(response => {
         if (response.ok) return response.json();

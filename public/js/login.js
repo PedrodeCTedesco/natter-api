@@ -11,7 +11,6 @@ function login(username, password) {
 
     fetch(window.API_URL + 'auth/login', {
         method: 'POST',
-        credentials: 'include',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': credentials
@@ -22,12 +21,7 @@ function login(username, password) {
     .then(res => {
         if (res.ok) {
             res.json().then(json => {
-                // Força a expiração do cookie com o path antigo para evitar duplicatas
-                document.cookie = 'csrfToken=; expires=Thu, 01 Jan 1970 00:00:00 UTC; Path=/pages'; // se fosse para mesma origem: Path=/static/pages
-                
-                // Define o novo cookie com o path global
-                document.cookie = 'csrfToken=' + json.token + ';Secure;SameSite=strict;Path=/';
-                
+                localStorage.setItem('token', json.token);
                 window.location.replace('/pages/index.html'); // se fosse para mesma origem: /static/pages/...
             });
         } else {

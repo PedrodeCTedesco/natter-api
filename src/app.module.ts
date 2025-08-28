@@ -18,9 +18,20 @@ import { AuditMiddleware } from './middleware/audit_logging/audit.logging.middle
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { TokenModule } from './token/token.module';
-import { CookieTokenStore } from './token/cookie.token.store';
-import { TOKEN_STORE } from './token/constants/token.store.constants';
 import { BasicAuthMiddleware } from './middleware/basic.auth/basic.auth.middleware';
+import { ScheduleModule } from '@nestjs/schedule';
+import { TokenCleanupService } from './token/services/token.cleanup.service';
+import { TokenCleanupModule } from './token/services/token.cleanup.module';
+import { TOKEN_SERVICE_TOKEN } from './interfaces/interfaces.tokens/token.interface.token.service';
+import { TokenService } from './token/token.service';
+import { AUDIT_SERVICE_TOKEN } from './interfaces/interfaces.tokens/token.audit.service';
+import { AuditService } from './audit_logging/audit_logging.service';
+import { USER_SERVICE_TOKEN } from './interfaces/interfaces.tokens/token.user.service';
+import { UsersService } from './users/users.service';
+import { ConfigService } from '@nestjs/config';
+import { SOCIAL_SPACE_SERVICE_TOKEN } from './interfaces/interfaces.tokens/token.social.space.service';
+import { SocialSpacesService } from './social-spaces/social-spaces.service';
+
 
 @Module({
   imports: [
@@ -71,23 +82,39 @@ import { BasicAuthMiddleware } from './middleware/basic.auth/basic.auth.middlewa
     AuthModule,
     UsersModule,
     AuditLoggingModule,
-    TokenModule
+    TokenModule,
+    TokenCleanupModule,
+    ScheduleModule.forRoot()
   ],
   controllers: [AppController],
   providers: [
+    ConfigService,
     {
       provide: APP_GUARD,
       useClass: ThrottlerGuard
     },
     {
+      provide: TOKEN_SERVICE_TOKEN,
+      useExisting: TokenService
+    },
+    {
+      provide: AUDIT_SERVICE_TOKEN,
+      useClass: AuditService
+    },
+    {
+      provide: USER_SERVICE_TOKEN,
+      useClass: UsersService
+    },         
+    {
       provide: APP_INTERCEPTOR,
       useClass: AuditInterceptor
     },
-      {
-        provide: TOKEN_STORE,
-        useClass: CookieTokenStore
-      },
-    AppService
+    {
+      provide: SOCIAL_SPACE_SERVICE_TOKEN,
+      useClass: SocialSpacesService
+    },    
+    AppService,
+    TokenCleanupService
   ],
 })
 export class AppModule {

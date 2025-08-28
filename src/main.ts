@@ -2,7 +2,6 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import * as dotenv from 'dotenv';
 import { httpsOptions } from './config/https/https.options';
-import * as session from 'express-session';
 
 dotenv.config();
 
@@ -19,25 +18,8 @@ async function bootstrap() {
       'https://localhost:4000'
     ],
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'x-csrf-token'],
-    credentials: true
+    allowedHeaders: ['Content-Type', 'Authorization'],
   });
-
-  app.use(
-    session({
-      secret: 'your-secret-key',
-      resave: false,
-      saveUninitialized: false,
-      name: '__Host-session',
-      cookie: { 
-        secure: true,
-        httpOnly: true,
-        sameSite: 'none',
-        maxAge: 600000,
-        path: '/'
-      }
-    })
-  );
 
   await app.listen(process.env.PORT ?? 3000, () => {
     console.log(`App is running on port: ${process.env.PORT ?? 3000}`);
