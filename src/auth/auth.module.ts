@@ -12,14 +12,14 @@ import { UsersService } from 'src/users/users.service';
 import { ConfigService } from '@nestjs/config';
 import { SOCIAL_SPACE_SERVICE_TOKEN } from 'src/interfaces/interfaces.tokens/token.social.space.service';
 import { SocialSpacesService } from 'src/social-spaces/social-spaces.service';
-import { DatabaseTokenStore } from 'src/token/database.token.store.service';
 import { HmacTokenStore } from 'src/token/hmac.token.store';
+import { JsonTokenStore } from 'src/token/jwt.token.store';
 
 @Module({
   controllers: [AuthController],
   providers: [
     AuthService,
-    DatabaseTokenStore,
+    JsonTokenStore,
     DatabaseProvider,
     {
       provide: AUDIT_SERVICE_TOKEN,

@@ -11,15 +11,15 @@ import { UsersService } from 'src/users/users.service';
 import { SOCIAL_SPACE_SERVICE_TOKEN } from 'src/interfaces/interfaces.tokens/token.social.space.service';
 import { SocialSpacesService } from 'src/social-spaces/social-spaces.service';
 import { ConfigService } from '@nestjs/config';
-import { DatabaseTokenStore } from 'src/token/database.token.store.service';
 import { HmacTokenStore } from './hmac.token.store';
+import { JsonTokenStore } from './jwt.token.store';
 
 @Module({
   imports: [AuditLoggingModule],
   controllers: [TokenController],
   providers: [
     TokenService,
-    DatabaseTokenStore,
+    JsonTokenStore,
     {
       provide: TOKEN_STORE,
       useClass:HmacTokenStore

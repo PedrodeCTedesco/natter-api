@@ -3,21 +3,21 @@ import { Request } from 'express';
 import * as crypto from 'crypto';
 import { Token } from './token';
 import { TokenStore } from 'src/interfaces/toke.store.interface';
-import { DatabaseTokenStore } from './database.token.store.service';
+import { JsonTokenStore } from './jwt.token.store';
 
 @Injectable()
 export class HmacTokenStore implements TokenStore {
   private readonly secret: Buffer;
 
   constructor(
-    private readonly delegate: DatabaseTokenStore, // TokenStore real (ex: DatabaseTokenStore)
+    private readonly delegate: JsonTokenStore, // TokenStore real (ex: JsonTokenStore)
     @Inject('HMAC_SECRET') secretKey: string, // Chave secreta injetada via módulo
   ) {
     this.secret = Buffer.from(secretKey, 'utf-8');
   }
 
   async create(request: Request, token: Token): Promise<string> {
-    // Gera o token base no delegate (ex: DatabaseTokenStore)
+    // Gera o token base no delegate (ex: JsonTokenStore)
     const tokenId: string = await this.delegate.create(request, token);
 
     // Calcula o HMAC do tokenId
